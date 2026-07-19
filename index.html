@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0F1115">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="DocuStudio — The all-in-one document & PDF suite. Create, edit, fill, sign, merge, convert, and protect your documents with pro-grade tools.">
+  <meta property="og:title" content="DocuStudio by TeaJay Konsult">
+  <meta property="og:description" content="The PDF-first document workspace that does it all. Fill forms, sign, merge, convert, and more.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://docustudio.vercel.app">
+  <title>DocuStudio — PDF Suite & Document Workspace</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- ====== PWA MANIFEST ====== -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="https://cdn.iconscout.com/l8/png/64/64/647084-pen-and-paper-2.png">
+
+  <style>
+    /* --- All styles remain exactly as your original --- */
+    :root {
+      --bg-dark: #0A0C10;
+      --bg-hero: #0F1115;
+      --bg-card: #16181D;
+      --bg-card-hover: #1E2028;
+      --border: rgba(255,255,255,0.06);
+      --border-light: rgba(255,255,255,0.1);
+      --text-primary: #F0F0F5;
+      --text-secondary: #9CA3AF;
+      --text-muted: #5A5E6A;
+      --accent: #6366F1;
+      --accent-hover: #8184F8;
+      --accent-glow: rgba(99,102,241,0.15);
+      --accent-teal: #14B8A6;
+      --accent-coral: #F4726B;
+      --accent-amber: #FBBF24;
+      --white: #FFFFFF;
+      --shadow-soft: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 80px rgba(99,102,241,0.1);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* --- HEADER --- */
+    .tj-header {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: rgba(10,12,16,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .tj-header-inner {
+      max-width: 1200px; margin: 0 auto; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .tj-brand {
+      display: flex; align-items: center; gap: 10px; text-decoration: none;
+    }
+    .tj-brand-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 18px;
+      box-shadow: 0 0 20px rgba(99,102,241,0.3);
+    }
+    .tj-brand-text {
+      display: flex; flex-direction: column;
+    }
+    .tj-brand-name {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700; font-size: 18px;
+      color: var(--text-primary); line-height: 1.1;
+    }
+    .tj-brand-sub {
+      font-size: 9px; color: var(--text-muted);
+      letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500;
+    }
+    .tj-nav {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tj-nav a {
+      text-decoration: none; color: var(--text-secondary);
+      font-size: 14px; font-weight: 500; padding: 8px 16px;
+      border-radius: var(--radius-sm); transition: all 0.2s ease;
+    }
+    .tj-nav a:hover { color: var(--text-primary); background: var(--bg-card); }
+    .tj-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 10px 22px; border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: all 0.25s ease; white-space: nowrap;
+    }
+    .tj-btn-primary {
+      background: var(--accent); color: white;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+    }
+    .tj-btn-primary:hover {
+      background: var(--accent-hover); transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(99,102,241,0.4);
+    }
+    .tj-btn-outline {
+      background: transparent; color: var(--text-secondary);
+      border: 1.5px solid var(--border-light);
+    }
+    .tj-btn-outline:hover {
+      border-color: var(--text-primary); color: var(--text-primary);
+      background: var(--bg-card);
+    }
+    .tj-btn-ghost {
+      background: transparent; color: var(--text-secondary);
+    }
+    .tj-btn-ghost:hover { color: var(--text-primary); }
+
+    /* --- HERO --- */
+    .hero {
+      position: relative; padding: 160px 24px 100px;
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1.1fr; gap: 80px;
+      align-items: center; min-height: 100vh; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -200px; right: -200px;
+      width: 600px; height: 600px; background: var(--accent-glow);
+      border-radius: 50%; filter: blur(120px); pointer-events: none;
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -150px; left: -100px;
+      width: 400px; height: 400px;
+      background: rgba(20,184,166,0.06); border-radius: 50%;
+      filter: blur(100px); pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--accent); font-size: 12px; font-weight: 600;
+      padding: 7px 16px; border-radius: 100px; margin-bottom: 28px;
+      letter-spacing: 0.3px;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; background: var(--accent);
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(40px, 5.5vw, 68px); font-weight: 700;
+      line-height: 1.1; color: var(--text-primary); margin-bottom: 24px;
+    }
+    .hero h1 em {
+      font-style: italic; color: var(--accent);
+    }
+    .hero p {
+      font-size: 18px; color: var(--text-secondary);
+      line-height: 1.7; max-width: 540px; margin-bottom: 36px;
+    }
+    .hero-actions {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px;
+    }
+    .hero-actions .tj-btn-primary { padding: 14px 32px; font-size: 15px; }
+    .hero-actions .tj-btn-outline { padding: 14px 32px; font-size: 15px; }
+    .hero-trust {
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    }
+    .hero-trust-avatars { display: flex; }
+    .hero-trust-avatars img {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 2px solid var(--bg-dark); margin-left: -10px;
+      object-fit: cover;
+    }
+    .hero-trust-avatars img:first-child { margin-left: 0; }
+    .hero-trust-text {
+      font-size: 13px; color: var(--text-muted);
+    }
+    .hero-trust-text strong {
+      color: var(--text-primary); font-weight: 600;
+    }
+    .hero-visual {
+      position: relative; display: flex; justify-content: center;
+      align-items: center; z-index: 1;
+    }
+    .hero-mockup {
+      width: 100%; max-width: 580px; background: var(--bg-card);
+      border-radius: var(--radius-xl); box-shadow: var(--shadow-glow), 0 20px 60px rgba(0,0,0,0.5);
+      border: 1px solid var(--border); overflow: hidden; position: relative;
+    }
+    .mockup-topbar {
+      height: 36px; background: var(--bg-hero);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 14px; gap: 8px;
+    }
+    .mockup-dots { display: flex; gap: 6px; }
+    .mockup-dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .mockup-dots span:nth-child(1) { background: #E07A5F; }
+    .mockup-dots span:nth-child(2) { background: #F2CC8F; }
+    .mockup-dots span:nth-child(3) { background: #81B29A; }
+    .mockup-title {
+      font-size: 11px; color: var(--text-muted); font-weight: 500;
+      margin-left: 4px;
+    }
+    .mockup-body { padding: 20px; display: flex; gap: 16px; }
+    .mockup-sidebar {
+      width: 44px; display: flex; flex-direction: column; gap: 8px;
+      align-items: center;
+    }
+    .mockup-sb-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .mockup-sb-icon.active { background: var(--accent); color: white; }
+    .mockup-sb-icon.inactive { background: var(--bg-hero); color: var(--text-muted); }
+    .mockup-main { flex: 1; }
+    .mockup-ribbon {
+      display: flex; gap: 2px; margin-bottom: 10px;
+    }
+    .mockup-ribbon-tab {
+      padding: 4px 10px; border-radius: 4px 4px 0 0;
+      font-size: 9px; font-weight: 600; color: var(--text-muted);
+    }
+    .mockup-ribbon-tab.active {
+      background: var(--bg-card-hover); color: var(--text-primary);
+      border-bottom: 1.5px solid var(--accent);
+    }
+    .mockup-toolbar {
+      background: var(--bg-card-hover); border-radius: 6px;
+      padding: 8px; display: flex; gap: 6px; margin-bottom: 12px;
+    }
+    .mockup-tb-btn {
+      width: 24px; height: 24px; border-radius: 4px;
+      background: var(--bg-hero); display: flex; align-items: center;
+      justify-content: center; font-size: 11px; color: var(--text-secondary);
+    }
+    .mockup-doc {
+      background: var(--white); border-radius: 4px;
+      padding: 16px 20px; min-height: 180px;
+    }
+    .mockup-doc h4 {
+      font-family: 'Playfair Display', serif; font-size: 13px;
+      font-weight: 700; color: #1a1a2e; margin-bottom: 8px;
+    }
+    .mockup-doc p {
+      font-size: 9px; color: #666; line-height: 1.7; margin-bottom: 6px;
+    }
+    .mockup-doc .sig {
+      margin-top: 12px; padding: 8px;
+      border: 1px dashed #ccc; border-radius: 4px; text-align: center;
+    }
+    .mockup-doc .sig-name {
+      font-family: 'Playfair Display', serif; font-size: 11px;
+      font-style: italic; color: #1a1a2e;
+    }
+
+    /* --- FEATURES --- */
+    .features {
+      padding: 100px 24px; position: relative;
+    }
+    .features::before {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px; height: 800px; background: var(--accent-glow);
+      border-radius: 50%; filter: blur(150px); pointer-events: none;
+      opacity: 0.5;
+    }
+    .features-inner {
+      max-width: 1200px; margin: 0 auto; position: relative; z-index: 1;
+    }
+    .section-header {
+      text-align: center; max-width: 600px; margin: 0 auto 70px;
+    }
+    .section-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 4.5vw, 48px); font-weight: 700;
+      margin-bottom: 16px; color: var(--text-primary);
+    }
+    .section-header p {
+      font-size: 17px; color: var(--text-secondary); line-height: 1.7;
+    }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 36px 28px;
+      transition: all 0.35s ease; position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 2px; background: var(--accent); transform: scaleX(0);
+      transition: transform 0.35s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-6px); box-shadow: var(--shadow-glow), 0 20px 50px rgba(0,0,0,0.3);
+      border-color: transparent;
+    }
+    .feature-card:hover::before { transform: scaleX(1); }
+    .feature-icon {
+      width: 50px; height: 50px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 22px;
+    }
+    .feature-card:nth-child(1) .feature-icon { background: rgba(99,102,241,0.12); }
+    .feature-card:nth-child(2) .feature-icon { background: rgba(20,184,166,0.12); }
+    .feature-card:nth-child(3) .feature-icon { background: rgba(244,114,107,0.12); }
+    .feature-card:nth-child(4) .feature-icon { background: rgba(251,191,36,0.12); }
+    .feature-card:nth-child(5) .feature-icon { background: rgba(139,92,246,0.12); }
+    .feature-card:nth-child(6) .feature-icon { background: rgba(56,189,248,0.12); }
+    .feature-card h3 {
+      font-size: 17px; font-weight: 600; margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+    .feature-card p {
+      font-size: 14px; color: var(--text-secondary); line-height: 1.65;
+    }
+
+    /* --- PDF SHOWCASE --- */
+    .pdf-showcase {
+      padding: 100px 24px; background: var(--bg-hero);
+      position: relative; overflow: hidden;
+    }
+    .pdf-showcase::before {
+      content: ''; position: absolute; top: -100px; right: -150px;
+      width: 500px; height: 500px;
+      background: rgba(244,114,107,0.05); border-radius: 50%;
+      filter: blur(100px);
+    }
+    .pdf-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+      align-items: center;
+    }
+    .pdf-content h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(28px, 4vw, 42px); font-weight: 700;
+      margin-bottom: 18px; color: var(--text-primary);
+    }
+    .pdf-content p {
+      font-size: 17px; color: var(--text-secondary);
+      line-height: 1.7; margin-bottom: 32px;
+    }
+    .pdf-tools-list {
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .pdf-tool-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      transition: all 0.25s; cursor: default;
+    }
+    .pdf-tool-item:hover {
+      border-color: var(--accent); background: var(--bg-card-hover);
+    }
+    .pdf-tool-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .pdf-tool-item:nth-child(1) .pdf-tool-icon { background: rgba(99,102,241,0.12); }
+    .pdf-tool-item:nth-child(2) .pdf-tool-icon { background: rgba(20,184,166,0.12); }
+    .pdf-tool-item:nth-child(3) .pdf-tool-icon { background: rgba(244,114,107,0.12); }
+    .pdf-tool-item:nth-child(4) .pdf-tool-icon { background: rgba(251,191,36,0.12); }
+    .pdf-tool-text h4 {
+      font-size: 14px; font-weight: 600; color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    .pdf-tool-text p {
+      font-size: 12px; color: var(--text-muted); margin: 0;
+    }
+    .pdf-visual {
+      position: relative;
+      display: flex; justify-content: center;
+    }
+    .pdf-doc-stack {
+      position: relative; width: 100%; max-width: 420px;
+    }
+    .pdf-doc {
+      background: var(--white); border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      padding: 30px 36px; position: relative; z-index: 3;
+    }
+    .pdf-doc-behind-1 {
+      position: absolute; top: 16px; left: 16px;
+      right: -16px; bottom: -16px; background: var(--bg-card);
+      border-radius: 8px; z-index: 2; border: 1px solid var(--border);
+    }
+    .pdf-doc-behind-2 {
+      position: absolute; top: 32px; left: 32px;
+      right: -32px; bottom: -32px; background: var(--bg-hero);
+      border-radius: 8px; z-index: 1; border: 1px solid var(--border);
+    }
+    .pdf-doc h3 {
+      font-family: 'Playfair Display', serif; font-size: 20px;
+      font-weight: 700; color: #1a1a2e; margin-bottom: 16px;
+    }
+    .pdf-doc p {
+      font-size: 13px; color: #555; line-height: 1.7; margin-bottom: 10px;
+    }
+    .pdf-doc .pdf-sig {
+      margin-top: 20px; padding: 14px;
+      border: 1.5px dashed #ccc; border-radius: 6px; text-align: center;
+    }
+    .pdf-doc .pdf-sig-name {
+      font-family: 'Playfair Display', serif; font-size: 18px;
+      font-style: italic; color: #1a1a2e;
+    }
+    .pdf-badge {
+      position: absolute; top: -14px; right: -14px;
+      background: var(--accent-coral); color: white; font-size: 10px;
+      font-weight: 700; padding: 6px 14px; border-radius: 100px;
+      z-index: 4; box-shadow: 0 4px 16px rgba(244,114,107,0.4);
+    }
+
+    /* --- HOW IT WORKS --- */
+    .how-it-works {
+      padding: 100px 24px; position: relative;
+    }
+    .how-inner { max-width: 1200px; margin: 0 auto; }
+    .steps {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 24px; margin-top: 60px;
+    }
+    .step {
+      text-align: center; position: relative;
+    }
+    .step:not(:last-child)::after {
+      content: ''; position: absolute; top: 30px; right: -28px;
+      width: 56px; height: 1px; background: var(--border-light);
+    }
+    .step-number {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: var(--bg-card); border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Playfair Display', serif; font-size: 24px;
+      font-weight: 700; color: var(--accent); margin: 0 auto 22px;
+      position: relative; z-index: 1; transition: all 0.3s;
+    }
+    .step:hover .step-number {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px rgba(99,102,241,0.2);
+    }
+    .step h3 {
+      font-size: 16px; font-weight: 600; margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+    .step p {
+      font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+    }
+
+    /* --- CTA --- */
+    .cta-section {
+      padding: 120px 24px; background: var(--bg-hero);
+      position: relative; overflow: hidden; text-align: center;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; top: -150px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 600px; background: var(--accent-glow);
+      border-radius: 50%; filter: blur(120px);
+    }
+    .cta-inner {
+      max-width: 700px; margin: 0 auto; position: relative; z-index: 1;
+    }
+    .cta-inner h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 4.5vw, 52px); font-weight: 700;
+      color: var(--text-primary); margin-bottom: 18px;
+    }
+    .cta-inner p {
+      font-size: 18px; color: var(--text-secondary); line-height: 1.7;
+      margin-bottom: 40px;
+    }
+    .cta-inner .tj-btn-primary {
+      padding: 16px 44px; font-size: 16px;
+    }
+
+    /* --- FOOTER --- */
+    .footer {
+      background: var(--bg-dark); border-top: 1px solid var(--border);
+      padding: 60px 24px 30px;
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+    }
+    .footer-top {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; flex-wrap: wrap; gap: 40px;
+      margin-bottom: 50px;
+    }
+    .footer-brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .footer-brand-icon {
+      width: 32px; height: 32px;
+      background: var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 14px;
+    }
+    .footer-brand-text {
+      font-family: 'Playfair Display', serif; font-weight: 700;
+      font-size: 16px; color: var(--text-primary);
+    }
+    .footer-desc {
+      font-size: 13px; color: var(--text-muted); margin-top: 10px;
+      max-width: 260px; line-height: 1.6;
+    }
+    .footer-links {
+      display: flex; gap: 60px; flex-wrap: wrap;
+    }
+    .footer-links h4 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--text-muted); margin-bottom: 16px; font-weight: 600;
+    }
+    .footer-links a {
+      display: block; color: var(--text-secondary);
+      text-decoration: none; font-size: 14px; margin-bottom: 11px;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+    .footer-share {
+      display: flex; gap: 12px;
+      margin-top: 6px;
+    }
+    .share-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .share-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .share-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+    .footer-bottom {
+      border-top: 1px solid var(--border); padding-top: 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .footer-bottom p {
+      font-size: 12px; color: var(--text-muted);
+    }
+
+    /* --- AUTH MODAL --- */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .modal-content {
+      background: var(--bg-card);
+      max-width: 420px;
+      width: 100%;
+      padding: 40px 32px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px; right: 20px;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--text-primary); }
+    .modal h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+    .modal .subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .modal .tab {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal .tab button {
+      flex: 1;
+      background: none;
+      border: none;
+      padding: 12px 0;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    .modal .tab button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .modal .form-group {
+      margin-bottom: 18px;
+    }
+    .modal .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .modal input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-hero);
+      color: var(--text-primary);
+      transition: border-color 0.2s;
+    }
+    .modal input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .modal input::placeholder {
+      color: var(--text-muted);
+    }
+    .modal .password-wrapper {
+      position: relative;
+    }
+    .modal .password-wrapper input {
+      padding-right: 40px;
+    }
+    .modal .password-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 18px;
+      transition: color 0.2s;
+    }
+    .modal .password-toggle:hover { color: var(--text-primary); }
+    .modal .forgot-link {
+      text-align: right;
+      margin-top: -10px;
+      margin-bottom: 18px;
+    }
+    .modal .forgot-link a {
+      color: var(--accent);
+      font-size: 13px;
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .modal .forgot-link a:hover { text-decoration: underline; }
+    .modal .tj-btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .modal .tj-btn-submit:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .modal .message {
+      margin-top: 12px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .modal .message.error { color: var(--accent-coral); }
+    .modal .message.success { color: var(--accent-teal); }
+    .modal .hidden { display: none; }
+    .modal .social-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .modal .social-divider::before,
+    .modal .social-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .modal .social-divider span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .modal .google-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-hero);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+    }
+    .modal .google-btn:hover {
+      background: var(--bg-card);
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    /* --- PWA Install & iOS Banner --- */
+    #install-btn {
+      position: fixed; bottom: 20px; right: 20px; z-index: 999;
+      background: var(--accent); color: white; border: none;
+      padding: 12px 22px; border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 4px 24px rgba(99,102,241,0.4);
+      display: none; align-items: center; gap: 6px; transition: all 0.3s;
+    }
+    #install-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(99,102,241,0.5);
+    }
+    #install-btn.show { display: inline-flex; }
+
+    .ios-banner {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--bg-hero); color: var(--text-primary);
+      padding: 14px 20px; display: none; align-items: center;
+      justify-content: center; gap: 14px; font-size: 13px; z-index: 998;
+      border-top: 1px solid var(--border);
+    }
+    .ios-banner.show { display: flex; }
+    .ios-banner button {
+      background: var(--accent); color: white; border: none;
+      padding: 6px 16px; border-radius: 6px; font-size: 12px;
+      font-weight: 600; cursor: pointer;
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 50px;
+        padding-top: 130px;
+        text-align: center;
+      }
+      .hero p { margin: 0 auto 36px; }
+      .hero-actions { justify-content: center; }
+      .hero-trust { justify-content: center; }
+      .hero-visual { order: -1; }
+      .hero-mockup { max-width: 420px; margin: 0 auto; }
+      .features-grid { grid-template-columns: 1fr; }
+      .pdf-inner { grid-template-columns: 1fr; gap: 50px; }
+      .pdf-visual { order: 1; }
+      .pdf-content { order: -1; text-align: center; }
+      .pdf-content p { margin: 0 auto 32px; }
+      .pdf-tools-list { max-width: 400px; margin: 0 auto; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .step:not(:last-child)::after { display: none; }
+      .tj-nav { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .steps { grid-template-columns: 1fr; }
+      .footer-top { flex-direction: column; }
+      .footer-links { gap: 30px; }
+      .hero h1 { font-size: 36px; }
+      .hero-actions .tj-btn { width: 100%; }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: fadeInUp 0.7s ease forwards; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+  </style>
+</head>
+<body>
+
+<!-- ====== HEADER ====== -->
+<header class="tj-header">
+  <div class="tj-header-inner">
+    <a href="#" class="tj-brand">
+      <div class="tj-brand-icon">📄</div>
+      <div class="tj-brand-text">
+        <span class="tj-brand-name">DocuStudio</span>
+        <span class="tj-brand-sub">by TeaJay Konsult</span>
+      </div>
+    </a>
+    <nav class="tj-nav">
+      <a href="#features">Features</a>
+      <a href="#pdf-suite">PDF Suite</a>
+      <a href="#how">How It Works</a>
+      <a href="/pricing.html">Pricing</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/blog.html">Blog</a>
+      <a href="#" onclick="openModal(true); return false;" class="tj-btn tj-btn-ghost" style="padding:8px 18px; font-size:13px;">Sign In</a>
+      <a href="#" onclick="openModal(false); return false;" class="tj-btn tj-btn-primary" style="padding:8px 18px; font-size:13px;">Get Started</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ====== HERO ====== -->
+<section class="hero">
+  <div class="hero-content animate-in">
+    <div class="hero-badge"><span class="dot"></span> PDF-First Document Workspace</div>
+    <h1>Edit, Fill, Sign, Convert <em>PDFs</em> — Plus Create & View Docs, Sheets, Slides & E‑Books</h1>
+    <p>DocuStudio is your all-in-one document workspace. Edit PDFs, fill forms, add signatures, merge, compress, convert — and create text documents, view spreadsheets, presentations, and e‑books. All in one place.</p>
+    <div class="hero-actions">
+      <a href="#" onclick="openModal(false); return false;" class="tj-btn tj-btn-primary">Try the PDF Suite →</a>
+      <a href="#pdf-suite" class="tj-btn tj-btn-outline">Explore Tools</a>
+    </div>
+    <div class="hero-trust">
+      <div class="hero-trust-avatars">
+        <img src="https://i.pravatar.cc/100?img=11" alt="User">
+        <img src="https://i.pravatar.cc/100?img=15" alt="User">
+        <img src="https://i.pravatar.cc/100?img=18" alt="User">
+        <img src="https://i.pravatar.cc/100?img=22" alt="User">
+        <img src="https://i.pravatar.cc/100?img=25" alt="User">
+      </div>
+      <p class="hero-trust-text">Loved by <strong>3,200+ professionals</strong> worldwide</p>
+    </div>
+  </div>
+
+  <div class="hero-visual animate-in delay-1">
+    <div class="hero-mockup">
+      <div class="mockup-topbar">
+        <div class="mockup-dots"><span></span><span></span><span></span></div>
+        <span class="mockup-title">DocuStudio — Service_Agreement_2026.pdf</span>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-sidebar">
+          <div class="mockup-sb-icon active">📁</div>
+          <div class="mockup-sb-icon inactive">📝</div>
+          <div class="mockup-sb-icon inactive">📊</div>
+          <div class="mockup-sb-icon inactive">📎</div>
+          <div style="flex:1"></div>
+          <div class="mockup-sb-icon inactive">⚙️</div>
+        </div>
+        <div class="mockup-main">
+          <div class="mockup-ribbon">
+            <div class="mockup-ribbon-tab active">Home</div>
+            <div class="mockup-ribbon-tab">Insert</div>
+            <div class="mockup-ribbon-tab">Layout</div>
+            <div class="mockup-ribbon-tab">PDF</div>
+          </div>
+          <div class="mockup-toolbar">
+            <div class="mockup-tb-btn" style="font-weight:bold;">B</div>
+            <div class="mockup-tb-btn" style="font-style:italic;">I</div>
+            <div class="mockup-tb-btn" style="text-decoration:underline;">U</div>
+            <div class="mockup-tb-btn">≡</div>
+            <div class="mockup-tb-btn">•</div>
+            <div class="mockup-tb-btn">1.</div>
+          </div>
+          <div class="mockup-doc">
+            <h4>Service Agreement</h4>
+            <p>1. Scope of Services. The Service Provider agrees to deliver the services outlined in Exhibit A attached hereto...</p>
+            <p>2. Term. This Agreement shall commence on the Effective Date and continue for twelve (12) months...</p>
+            <div class="sig">
+              <div class="sig-name">Pamilerin A. Ajala</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== FEATURES ====== -->
+<section class="features" id="features">
+  <div class="features-inner">
+    <div class="section-header">
+      <h2>The Document Workspace You Need</h2>
+      <p>PDF Suite is the core. Plus, create and view text documents, spreadsheets, presentations, and e‑books — all in one beautifully designed workspace.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Rich Text Editor</h3>
+        <p>Create beautiful text documents with full formatting — bold, italic, headings, lists, and more. Export to PDF.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Spreadsheet Viewer</h3>
+        <p>Open and view .xlsx files. View formulas, data, and charts. Perfect for reviewing spreadsheets on the go.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📽️</div>
+        <h3>Presentation Viewer</h3>
+        <p>View .pptx presentations. See slides, notes, and animations. Great for reviewing decks without PowerPoint.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📖</div>
+        <h3>E‑book Reader</h3>
+        <p>Read .epub e‑books in a clean, distraction-free reader. Perfect for reading on any device.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✏️</div>
+        <h3>PDF Editor</h3>
+        <p>Edit text, add images, adjust fonts, and modify content directly in any PDF file. The core of DocuStudio.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>PDF Form Filler</h3>
+        <p>Fill out interactive PDF forms, add checkboxes, select options, and type into fields — no printing required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== PDF SUITE SHOWCASE ====== -->
+<section class="pdf-showcase" id="pdf-suite">
+  <div class="pdf-inner">
+    <div class="pdf-content">
+      <h2>The PDF Suite That Does <em style="color:var(--accent-coral); font-style:italic;">Everything</em></h2>
+      <p>Edit text, fill forms, add signatures, merge files, convert formats, compress size, and protect with passwords — all without leaving your browser.</p>
+      <div class="pdf-tools-list">
+        <div class="pdf-tool-item">
+          <div class="pdf-tool-icon">✏️</div>
+          <div class="pdf-tool-text">
+            <h4>Edit PDF Text & Images</h4>
+            <p>Modify content directly in any PDF file</p>
+          </div>
+        </div>
+        <div class="pdf-tool-item">
+          <div class="pdf-tool-icon">📝</div>
+          <div class="pdf-tool-text">
+            <h4>Fill Forms & E‑Sign</h4>
+            <p>Complete forms and sign documents digitally</p>
+          </div>
+        </div>
+        <div class="pdf-tool-item">
+          <div class="pdf-tool-icon">🔗</div>
+          <div class="pdf-tool-text">
+            <h4>Merge, Split & Rearrange</h4>
+            <p>Combine pages, extract sections, reorder freely</p>
+          </div>
+        </div>
+        <div class="pdf-tool-item">
+          <div class="pdf-tool-icon">🔄</div>
+          <div class="pdf-tool-text">
+            <h4>Convert Any Format</h4>
+            <p>PDF to Word, Excel, PowerPoint, JPG, and back</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pdf-visual">
+      <div class="pdf-doc-stack">
+        <div class="pdf-doc-behind-2"></div>
+        <div class="pdf-doc-behind-1"></div>
+        <div class="pdf-doc">
+          <div class="pdf-badge">Signed</div>
+          <h3>Service Agreement</h3>
+          <p><strong>1. Scope of Services.</strong> The Service Provider agrees to deliver the services outlined in Exhibit A attached hereto.</p>
+          <p><strong>2. Term.</strong> This Agreement shall commence on the Effective Date and continue for twelve (12) months.</p>
+          <p><strong>3. Payment.</strong> Payment shall be made within thirty (30) days of invoice receipt.</p>
+          <div class="pdf-sig">
+            <div class="pdf-sig-name">Pamilerin A. Ajala</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== HOW IT WORKS ====== -->
+<section class="how-it-works" id="how">
+  <div class="how-inner">
+    <div class="section-header">
+      <h2>From Document to Done in Minutes</h2>
+      <p>No steep learning curve. No complicated workflows. Just upload, create, edit, and go.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Open DocuStudio</h3>
+        <p>Launch the app from any device. Your workspace is ready instantly.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Upload or Create</h3>
+        <p>Upload a PDF, Word, Excel, PowerPoint, or e‑book. Or start a new text document.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Edit, Fill, or View</h3>
+        <p>Edit PDFs, fill forms, sign documents, or view your spreadsheets, presentations, and e‑books.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <h3>Convert & Share</h3>
+        <p>Convert to any format, download, or share a link. Done in minutes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== CTA ====== -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2>Ready to Take Control of Your Documents?</h2>
+    <p>Join thousands of professionals who use DocuStudio to manage, edit, and sign PDFs and documents every day. Start free.</p>
+    <a href="#" onclick="openModal(false); return false;" class="tj-btn tj-btn-primary">Start Free →</a>
+  </div>
+</section>
+
+<!-- ====== FOOTER (WITH OFFICIAL SVG ICONS) ====== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">
+          <div class="footer-brand-icon">📄</div>
+          <span class="footer-brand-text">DocuStudio</span>
+        </div>
+        <p class="footer-desc">A product of TeaJay Konsult Ltd. The all‑in‑one PDF and document workspace for modern professionals.</p>
+      </div>
+      <div class="footer-links">
+        <div>
+          <h4>Product</h4>
+          <a href="/">Home</a>
+          <a href="#features">Features</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/blog.html">Blog</a>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <a href="https://x.com/teajaykonsult" target="_blank">TeaJay Konsult</a>
+          <a href="/blog.html">Blog</a>
+          <a href="/contact.html">Contact</a>
+        </div>
+        <div>
+          <h4>Share</h4>
+          <div class="footer-share">
+            <!-- WhatsApp -->
+            <a href="https://wa.me/?text=Check%20out%20DocuStudio%20by%20TeaJay%20Konsult%3A%20https%3A%2F%2Fdocustudio.vercel.app" class="share-btn" target="_blank" title="Share on WhatsApp" aria-label="WhatsApp">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+            </a>
+            <!-- Facebook -->
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://docustudio.vercel.app" class="share-btn" target="_blank" title="Share on Facebook" aria-label="Facebook">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </a>
+            <!-- X (Twitter) -->
+            <a href="https://twitter.com/intent/tweet?text=DocuStudio%20by%20%40teajaykonsult%20%E2%80%94%20The%20PDF-first%20document%20workspace&url=https://docustudio.vercel.app" class="share-btn" target="_blank" title="Share on X" aria-label="X">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 TeaJay Konsult Ltd. All rights reserved.</p>
+      <p>Built with care by Pamilerin Adetunji Ajala</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ====== AUTH MODAL ====== -->
+<div id="authModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" id="closeModalBtn">✕</button>
+    <div class="tab">
+      <button id="modalSigninTab" class="active">Sign In</button>
+      <button id="modalSignupTab">Sign Up</button>
+    </div>
+
+    <!-- SIGN IN -->
+    <form id="modalSigninForm">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="modalSigninEmail" placeholder="you@example.com" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="modalSigninPassword" placeholder="Enter your password" required>
+          <button type="button" class="password-toggle" onclick="togglePassword('modalSigninPassword', this)">👁️</button>
+        </div>
+      </div>
+      <div class="forgot-link">
+        <a href="#" onclick="event.preventDefault(); sendPasswordReset();">Forgot password?</a>
+      </div>
+      <button type="submit" class="tj-btn-submit">Sign In</button>
+      <div class="message" id="modalSigninMessage"></div>
+    </form>
+
+    <!-- SIGN UP -->
+    <form id="modalSignupForm" class="hidden">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="modalSignupEmail" placeholder="you@example.com" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="modalSignupPassword" placeholder="Min. 6 characters" required>
+          <button type="button" class="password-toggle" onclick="togglePassword('modalSignupPassword', this)">👁️</button>
+        </div>
+      </div>
+      <button type="submit" class="tj-btn-submit">Create Account</button>
+      <div class="message" id="modalSignupMessage"></div>
+    </form>
+
+    <div class="social-divider"><span>or continue with</span></div>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 48 48" style="width:20px;height:20px;">
+        <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+        <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+        <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+        <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+      </svg>
+      Sign in with Google
+    </button>
+  </div>
+</div>
+
+<!-- ====== PWA ====== -->
+<button id="install-btn" onclick="installApp()">⬇️ Install App</button>
+<div class="ios-banner" id="ios-banner">
+  <span>📱 Add DocuStudio to your home screen for the best experience</span>
+  <button onclick="document.getElementById('ios-banner').classList.remove('show')">Got it</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+<script>
+  // ====== REAL FIREBASE CONFIG ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyDdboIxnsvdJNVNN5GnRshWu7gctzBw6b0",
+    authDomain: "docustudio-1e91f.firebaseapp.com",
+    projectId: "docustudio-1e91f",
+    storageBucket: "docustudio-1e91f.firebasestorage.app",
+    messagingSenderId: "699941699006",
+    appId: "1:699941699006:web:863c41f668266de2284def",
+    measurementId: "G-9CZ0RXMJCQ"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // ====== DOM REFS ======
+  const modal = document.getElementById('authModal');
+  const signinTab = document.getElementById('modalSigninTab');
+  const signupTab = document.getElementById('modalSignupTab');
+  const signinForm = document.getElementById('modalSigninForm');
+  const signupForm = document.getElementById('modalSignupForm');
+  const signinEmail = document.getElementById('modalSigninEmail');
+  const signinPassword = document.getElementById('modalSigninPassword');
+  const signupEmail = document.getElementById('modalSignupEmail');
+  const signupPassword = document.getElementById('modalSignupPassword');
+  const signinMessage = document.getElementById('modalSigninMessage');
+  const signupMessage = document.getElementById('modalSignupMessage');
+
+  // ====== PASSWORD TOGGLE ======
+  function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
+  }
+  window.togglePassword = togglePassword;
+
+  // ====== FORGOT PASSWORD ======
+  async function sendPasswordReset() {
+    const email = signinEmail.value.trim();
+    if (!email) {
+      showToast('Please enter your email address first.');
+      return;
+    }
+    try {
+      await auth.sendPasswordResetEmail(email);
+      showToast('✅ Password reset email sent. Check your inbox.');
+    } catch (err) {
+      showToast('❌ ' + err.message);
+    }
+  }
+  window.sendPasswordReset = sendPasswordReset;
+
+  // ====== GOOGLE SIGN-IN ======
+  async function signInWithGoogle() {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+      window.location.href = '/dashboard.html';
+    } catch (err) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        showToast('⚠️ Sign-in cancelled.');
+      } else {
+        showToast('❌ Google Sign-In failed: ' + err.message);
+      }
+      console.error('Google Sign-In error:', err);
+    }
+  }
+  window.signInWithGoogle = signInWithGoogle;
+
+  // ====== TOAST ======
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 24px;border-radius:40px;font-size:13px;z-index:9999;border:1px solid rgba(255,255,255,0.08);font-family:Inter,sans-serif;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+  window.showToast = showToast;
+
+  // ====== MODAL CONTROLS ======
+  function openModal(showSignIn = true) {
+    modal.style.display = 'flex';
+    if (showSignIn) {
+      signinTab.classList.add('active');
+      signupTab.classList.remove('active');
+      signinForm.classList.remove('hidden');
+      signupForm.classList.add('hidden');
+    } else {
+      signupTab.classList.add('active');
+      signinTab.classList.remove('active');
+      signupForm.classList.remove('hidden');
+      signinForm.classList.add('hidden');
+    }
+  }
+  window.openModal = openModal;
+
+  document.getElementById('closeModalBtn').addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+  window.addEventListener('click', (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+
+  signinTab.addEventListener('click', () => {
+    signinTab.classList.add('active');
+    signupTab.classList.remove('active');
+    signinForm.classList.remove('hidden');
+    signupForm.classList.add('hidden');
+  });
+  signupTab.addEventListener('click', () => {
+    signupTab.classList.add('active');
+    signinTab.classList.remove('active');
+    signupForm.classList.remove('hidden');
+    signinForm.classList.add('hidden');
+  });
+
+  // ====== SIGN IN ======
+  signinForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    signinMessage.textContent = '';
+    try {
+      await auth.signInWithEmailAndPassword(signinEmail.value.trim(), signinPassword.value);
+      window.location.href = '/dashboard.html';
+    } catch (err) {
+      signinMessage.textContent = err.message;
+      signinMessage.classList.add('error');
+    }
+  });
+
+  // ====== SIGN UP ======
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    signupMessage.textContent = '';
+    const email = signupEmail.value.trim();
+    const password = signupPassword.value;
+    if (password.length < 6) {
+      signupMessage.textContent = 'Password must be at least 6 characters.';
+      signupMessage.classList.add('error');
+      return;
+    }
+    try {
+      await auth.createUserWithEmailAndPassword(email, password);
+      window.location.href = '/dashboard.html';
+    } catch (err) {
+      signupMessage.textContent = err.message;
+      signupMessage.classList.add('error');
+    }
+  });
+
+  // ====== AUTH STATE ======
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      window.location.href = '/dashboard.html';
+    }
+  });
+
+  // ====== PWA INSTALL ======
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-btn').classList.add('show');
+  });
+
+  function installApp() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        document.getElementById('install-btn').classList.remove('show');
+        deferredPrompt = null;
+      });
+    }
+  }
+  window.installApp = installApp;
+
+  // ====== iOS BANNER ======
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isIOS && !isStandalone) {
+    setTimeout(() => document.getElementById('ios-banner').classList.add('show'), 2000);
+  }
+
+  // ====== SCROLL ANIMATIONS ======
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .step, .pdf-tool-item').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(24px)';
+    el.style.transition = 'all 0.6s ease';
+    observer.observe(el);
+  });
+
+  // ====== SERVICE WORKER ======
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('[Service Worker] Registered'))
+      .catch((err) => console.warn('[Service Worker] Registration failed:', err));
+  }
+</script>
+</body>
+</html>

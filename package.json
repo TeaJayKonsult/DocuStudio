@@ -1,0 +1,13 @@
+{
+  "name": "docustudio",
+  "version": "1.0.0",
+  "description": "DocuStudio — PDF Suite & Document Workspace",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase": "^11.4.0"
+  }
+}

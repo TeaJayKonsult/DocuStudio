@@ -1,0 +1,24 @@
+{
+  "name": "DocuStudio",
+  "short_name": "DocuStudio",
+  "description": "The all-in-one PDF and document workspace. Edit, fill, sign, merge, convert, and view documents.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1115",
+  "theme_color": "#0F1115",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn.iconscout.com/l8/png/64/64/647084-pen-and-paper-2.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn.iconscout.com/l8/png/64/64/647084-pen-and-paper-2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

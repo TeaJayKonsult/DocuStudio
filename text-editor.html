@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Text Editor — DocuStudio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Quill.js CDN -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  
+  <!-- html2pdf for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    /* --- Variables --- */
+    :root {
+      --bg-dark: #0A0C10;
+      --bg-card: #16181D;
+      --bg-card-hover: #1E2028;
+      --border: rgba(255,255,255,0.06);
+      --text-primary: #F0F0F5;
+      --text-secondary: #9CA3AF;
+      --text-muted: #5A5E6A;
+      --accent: #6366F1;
+      --accent-hover: #8184F8;
+      --accent-coral: #F4726B;
+      --accent-teal: #14B8A6;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      
+      /* Light workspace colors */
+      --workspace-bg: #F8F9FA;
+      --workspace-card: #FFFFFF;
+      --workspace-border: #E5E7EB;
+      --workspace-text: #1A1A2E;
+      --workspace-text-secondary: #4B5563;
+      --workspace-text-muted: #9CA3AF;
+      --workspace-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--workspace-bg);
+      color: var(--workspace-text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- Header (Dark) --- */
+    .editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: var(--bg-dark);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .editor-header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .editor-header .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    .editor-header .close-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-card-hover);
+    }
+
+    /* --- Toolbar Area (Light) --- */
+    .editor-toolbar-area {
+      flex-shrink: 0;
+      padding: 12px 24px;
+      background: var(--workspace-card);
+      border-bottom: 1px solid var(--workspace-border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .editor-toolbar-area .left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .editor-toolbar-area .left input {
+      padding: 6px 12px;
+      border: 1.5px solid var(--workspace-border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      background: var(--workspace-bg);
+      color: var(--workspace-text);
+      width: 200px;
+    }
+    .editor-toolbar-area .left input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .editor-toolbar-area .right {
+      display: flex;
+      gap: 8px;
+    }
+    .editor-toolbar-area .right button {
+      padding: 6px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-export-pdf {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-export-pdf:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .btn-save {
+      background: var(--accent-teal);
+      color: white;
+    }
+    .btn-save:hover {
+      opacity: 0.8;
+      transform: translateY(-1px);
+    }
+    .btn-close-editor {
+      background: var(--workspace-bg);
+      color: var(--workspace-text-secondary);
+      border: 1px solid var(--workspace-border);
+    }
+    .btn-close-editor:hover {
+      background: var(--workspace-border);
+      color: var(--workspace-text);
+    }
+
+    /* --- Quill Editor Container (Light) --- */
+    .editor-container {
+      flex: 1;
+      overflow: hidden;
+      padding: 24px;
+      background: var(--workspace-bg);
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-wrapper {
+      flex: 1;
+      background: var(--workspace-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--workspace-border);
+      box-shadow: var(--workspace-shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Quill customizations */
+    #editor {
+      flex: 1;
+      background: var(--workspace-card);
+      font-family: 'Inter', sans-serif;
+    }
+    .ql-container {
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      border: none !important;
+    }
+    .ql-toolbar {
+      border: none !important;
+      border-bottom: 1px solid var(--workspace-border) !important;
+      background: var(--workspace-bg);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .ql-editor {
+      min-height: 300px;
+      font-family: 'Inter', sans-serif;
+      color: var(--workspace-text);
+    }
+    .ql-editor p {
+      margin-bottom: 12px;
+    }
+    .ql-editor h1, .ql-editor h2, .ql-editor h3 {
+      margin-bottom: 8px;
+    }
+
+    /* --- Status Messages --- */
+    .status {
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      margin-top: 12px;
+      display: none;
+      font-size: 14px;
+    }
+    .status.success {
+      display: block;
+      background: rgba(20,184,166,0.12);
+      border: 1px solid var(--accent-teal);
+      color: #0B7A6A;
+    }
+    .status.error {
+      display: block;
+      background: rgba(244,114,107,0.12);
+      border: 1px solid var(--accent-coral);
+      color: #C0392B;
+    }
+    .status.info {
+      display: block;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid var(--accent);
+      color: #4A4DBF;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+      .editor-header h1 { font-size: 15px; }
+      .editor-toolbar-area { flex-direction: column; align-items: stretch; }
+      .editor-toolbar-area .left { flex-wrap: wrap; }
+      .editor-toolbar-area .left input { width: 100%; }
+      .editor-toolbar-area .right { justify-content: flex-end; }
+      .editor-container { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ====== HEADER (Dark) ====== -->
+<div class="editor-header">
+  <h1>📝 Text Editor</h1>
+  <button class="close-btn" onclick="closeEditor()">✕</button>
+</div>
+
+<!-- ====== TOOLBAR (Light) ====== -->
+<div class="editor-toolbar-area">
+  <div class="left">
+    <label style="font-size:13px; font-weight:500; color:var(--workspace-text-secondary);">Document Name:</label>
+    <input type="text" id="docName" placeholder="My Document" value="Untitled">
+  </div>
+  <div class="right">
+    <button class="btn-save" onclick="saveDocument()">💾 Save</button>
+    <button class="btn-export-pdf" onclick="exportPDF()">📄 Export PDF</button>
+    <button class="btn-close-editor" onclick="closeEditor()">Close</button>
+  </div>
+</div>
+
+<!-- ====== EDITOR (Light) ====== -->
+<div class="editor-container">
+  <div class="editor-wrapper">
+    <div id="editor"></div>
+  </div>
+  <div class="status" id="editorStatus"></div>
+</div>
+
+<!-- ====== FIREBASE ====== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+<script>
+  // ====== FIREBASE CONFIG ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyDdboIxnsvdJNVNN5GnRshWu7gctzBw6b0",
+    authDomain: "docustudio-1e91f.firebaseapp.com",
+    projectId: "docustudio-1e91f",
+    storageBucket: "docustudio-1e91f.firebasestorage.app",
+    messagingSenderId: "699941699006",
+    appId: "1:699941699006:web:863c41f668266de2284def",
+    measurementId: "G-9CZ0RXMJCQ"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  // ====== STATE ======
+  let currentUser = null;
+  let quill = null;
+  let isProcessing = false;
+  let currentDocId = null;
+
+  // ====== INITIALIZE QUILL ======
+  document.addEventListener('DOMContentLoaded', () => {
+    quill = new Quill('#editor', {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ 'header': [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'font': [] }],
+          [{ 'size': ['small', false, 'large', 'huge'] }],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'align': [] }],
+          ['link', 'image', 'video'],
+          ['clean']
+        ]
+      }
+    });
+  });
+
+  // ====== CHECK AUTH ======
+  auth.onAuthStateChanged((user) => {
+    if (!user) {
+      alert('Please sign in to use the Text Editor.');
+      window.parent.postMessage({ type: 'closeViewer' }, '*');
+      return;
+    }
+    currentUser = user;
+    // Check actions remaining
+    db.collection('users').doc(user.uid).get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        const remaining = data.actionsRemaining || 0;
+        const plan = data.plan || 'free';
+        if (plan !== 'pro' && remaining <= 0) {
+          showStatus('error', '❌ You have no actions left. Please upgrade to Pro.');
+          document.querySelector('.btn-save').disabled = true;
+          document.querySelector('.btn-export-pdf').disabled = true;
+        } else {
+          document.querySelector('.btn-save').disabled = false;
+          document.querySelector('.btn-export-pdf').disabled = false;
+        }
+      }
+    });
+  });
+
+  // ====== SAVE DOCUMENT ======
+  async function saveDocument() {
+    if (isProcessing) return;
+    if (!currentUser) {
+      showStatus('error', 'Please sign in first.');
+      return;
+    }
+
+    // Check actions
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      const remaining = data.actionsRemaining || 0;
+      const plan = data.plan || 'free';
+      if (plan !== 'pro' && remaining <= 0) {
+        showStatus('error', '❌ No actions remaining. Upgrade to Pro for unlimited access.');
+        return;
+      }
+    }
+
+    isProcessing = true;
+    showStatus('info', '⏳ Saving document...');
+
+    const docName = document.getElementById('docName').value.trim() || 'Untitled';
+    const content = quill.root.innerHTML;
+    const plainText = quill.getText();
+
+    try {
+      // Generate unique ID if not exists
+      if (!currentDocId) {
+        currentDocId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      }
+
+      // Save to Firebase Storage as HTML
+      const storageRef = storage.ref(`documents/${currentUser.uid}/text/${currentDocId}_${docName}.html`);
+      const blob = new Blob([content], { type: 'text/html' });
+      const snapshot = await storageRef.put(blob);
+      const downloadURL = await snapshot.ref.getDownloadURL();
+
+      // Save metadata to Firestore
+      await db.collection('textDocuments').add({
+        userId: currentUser.uid,
+        docId: currentDocId,
+        name: docName,
+        content: content,
+        plainText: plainText,
+        url: downloadURL,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Decrement action (if not pro)
+      if (userDoc.exists && userDoc.data().plan !== 'pro') {
+        const newRemaining = (userDoc.data().actionsRemaining || 0) - 1;
+        await db.collection('users').doc(currentUser.uid).update({
+          actionsRemaining: newRemaining
+        });
+      }
+
+      // Log history
+      await db.collection('history').add({
+        userId: currentUser.uid,
+        action: 'Text Editor - Save',
+        documentName: docName,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      showStatus('success', `✅ "${docName}" saved successfully!`);
+      window.parent.postMessage({ type: 'actionUsed' }, '*');
+
+    } catch (err) {
+      console.error('Save error:', err);
+      showStatus('error', '❌ Save failed: ' + err.message);
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  // ====== EXPORT TO PDF ======
+  async function exportPDF() {
+    if (isProcessing) return;
+    if (!currentUser) {
+      showStatus('error', 'Please sign in first.');
+      return;
+    }
+
+    // Check actions
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      const remaining = data.actionsRemaining || 0;
+      const plan = data.plan || 'free';
+      if (plan !== 'pro' && remaining <= 0) {
+        showStatus('error', '❌ No actions remaining. Upgrade to Pro for unlimited access.');
+        return;
+      }
+    }
+
+    isProcessing = true;
+    showStatus('info', '⏳ Generating PDF...');
+
+    const docName = document.getElementById('docName').value.trim() || 'Untitled';
+    const content = quill.root.innerHTML;
+
+    try {
+      // Create a temporary container for the PDF
+      const tempDiv = document.createElement('div');
+      tempDiv.style.cssText = 'padding:40px; font-family:Inter, sans-serif; background:white; max-width:800px; margin:0 auto;';
+      tempDiv.innerHTML = `
+        <h1 style="font-size:24px; margin-bottom:20px; color:#1A1A2E;">${docName}</h1>
+        <div style="font-size:14px; color:#4B5563; margin-bottom:20px; border-bottom:1px solid #E5E7EB; padding-bottom:12px;">
+          Exported from DocuStudio · ${new Date().toLocaleDateString()}
+        </div>
+        <div style="font-size:14px; line-height:1.8; color:#1A1A2E;">
+          ${content}
+        </div>
+      `;
+      document.body.appendChild(tempDiv);
+
+      // Generate PDF
+      const opt = {
+        margin: [15, 15],
+        filename: `${docName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(tempDiv).save();
+
+      // Remove temp element
+      document.body.removeChild(tempDiv);
+
+      // Decrement action (if not pro)
+      if (userDoc.exists && userDoc.data().plan !== 'pro') {
+        const newRemaining = (userDoc.data().actionsRemaining || 0) - 1;
+        await db.collection('users').doc(currentUser.uid).update({
+          actionsRemaining: newRemaining
+        });
+      }
+
+      // Log history
+      await db.collection('history').add({
+        userId: currentUser.uid,
+        action: 'Text Editor - Export PDF',
+        documentName: docName,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      showStatus('success', `✅ "${docName}.pdf" exported successfully!`);
+      window.parent.postMessage({ type: 'actionUsed' }, '*');
+
+    } catch (err) {
+      console.error('Export error:', err);
+      showStatus('error', '❌ Export failed: ' + err.message);
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  // ====== CLOSE EDITOR ======
+  function closeEditor() {
+    window.parent.postMessage({ type: 'closeViewer' }, '*');
+  }
+
+  // ====== SHOW STATUS ======
+  function showStatus(type, msg) {
+    const el = document.getElementById('editorStatus');
+    el.className = 'status ' + type;
+    el.textContent = msg;
+    setTimeout(() => {
+      if (!el.textContent.includes('❌') && !el.textContent.includes('✅')) {
+        el.className = 'status';
+        el.textContent = '';
+      }
+    }, 5000);
+  }
+
+  // ====== MESSAGE FROM PARENT ======
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'closeViewer') {
+      closeEditor();
+    }
+  });
+
+  // ====== KEYBOARD SHORTCUTS ======
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+S to save
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      saveDocument();
+    }
+    // Ctrl+P to export PDF
+    if (e.ctrlKey && e.key === 'p') {
+      e.preventDefault();
+      exportPDF();
+    }
+  });
+
+  console.log('📝 Text Editor loaded successfully!');
+</script>
+</body>
+</html>

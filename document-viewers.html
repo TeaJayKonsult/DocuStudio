@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Document Viewers — DocuStudio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Libraries for each viewer -->
+  <!-- Excel: SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- PPT: PPTX.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxjs/0.1.7/pptx.min.js"></script>
+  <!-- EPUB: EPUB.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/epubjs/0.3.93/epub.min.js"></script>
+  <!-- DOCX: Mammoth.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+  <style>
+    /* --- Variables --- */
+    :root {
+      --bg-dark: #0A0C10;
+      --bg-card: #16181D;
+      --bg-card-hover: #1E2028;
+      --border: rgba(255,255,255,0.06);
+      --text-primary: #F0F0F5;
+      --text-secondary: #9CA3AF;
+      --text-muted: #5A5E6A;
+      --accent: #6366F1;
+      --accent-hover: #8184F8;
+      --accent-coral: #F4726B;
+      --accent-teal: #14B8A6;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      
+      --workspace-bg: #F8F9FA;
+      --workspace-card: #FFFFFF;
+      --workspace-border: #E5E7EB;
+      --workspace-text: #1A1A2E;
+      --workspace-text-secondary: #4B5563;
+      --workspace-text-muted: #9CA3AF;
+      --workspace-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--workspace-bg);
+      color: var(--workspace-text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .viewer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: var(--bg-dark);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .viewer-header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .viewer-header .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    .viewer-header .close-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-card-hover);
+    }
+
+    /* Upload area (shared) */
+    .upload-area {
+      flex-shrink: 0;
+      padding: 16px 24px;
+      background: var(--workspace-bg);
+      border-bottom: 1px solid var(--workspace-border);
+    }
+    .drop-zone {
+      border: 2px dashed var(--workspace-border);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: var(--workspace-card);
+      box-shadow: var(--workspace-shadow);
+    }
+    .drop-zone:hover {
+      border-color: var(--accent);
+      background: #F0F0FF;
+    }
+    .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.08);
+    }
+    .drop-zone .icon { font-size: 32px; margin-bottom: 8px; }
+    .drop-zone h3 { font-size: 16px; font-weight: 600; color: var(--workspace-text); }
+    .drop-zone p { font-size: 13px; color: var(--workspace-text-secondary); }
+    .drop-zone .file-input { display: none; }
+    .drop-zone .upload-btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 24px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    .drop-zone .upload-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Tabs */
+    .tabs {
+      flex-shrink: 0;
+      display: flex;
+      gap: 4px;
+      padding: 8px 24px;
+      background: var(--workspace-card);
+      border-bottom: 1px solid var(--workspace-border);
+      overflow-x: auto;
+    }
+    .tabs button {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: var(--workspace-text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+    }
+    .tabs button:hover {
+      background: var(--workspace-bg);
+      color: var(--workspace-text);
+    }
+    .tabs button.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* Content area */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      background: var(--workspace-bg);
+    }
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Viewer containers */
+    .viewer-container {
+      background: var(--workspace-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--workspace-border);
+      padding: 16px;
+      box-shadow: var(--workspace-shadow);
+      min-height: 300px;
+      overflow: auto;
+    }
+    .viewer-container table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .viewer-container th, .viewer-container td {
+      padding: 8px 12px;
+      border: 1px solid var(--workspace-border);
+      text-align: left;
+    }
+    .viewer-container th {
+      background: var(--workspace-bg);
+      font-weight: 600;
+    }
+    .viewer-container .slide {
+      background: white;
+      padding: 20px;
+      margin-bottom: 16px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .viewer-container .slide h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .viewer-container .slide p {
+      font-size: 14px;
+      color: var(--workspace-text-secondary);
+    }
+    .viewer-container .epub-view {
+      padding: 16px;
+      background: white;
+      border-radius: var(--radius-sm);
+    }
+    .viewer-container .epub-view h1, .viewer-container .epub-view h2 {
+      font-family: 'Playfair Display', serif;
+    }
+    .viewer-container .docx-view {
+      padding: 16px;
+      background: white;
+      border-radius: var(--radius-sm);
+    }
+    .viewer-container .docx-view h1, .viewer-container .docx-view h2 {
+      font-family: 'Playfair Display', serif;
+    }
+
+    /* Toolbar for each view */
+    .viewer-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 8px 0;
+      border-top: 1px solid var(--workspace-border);
+    }
+    .viewer-toolbar .file-info {
+      font-size: 13px;
+      color: var(--workspace-text-secondary);
+    }
+    .viewer-toolbar .file-info strong {
+      color: var(--workspace-text);
+    }
+    .viewer-toolbar .actions button {
+      padding: 6px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+      background: var(--accent);
+      color: white;
+    }
+    .viewer-toolbar .actions button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Status */
+    .status {
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      margin-top: 12px;
+      display: none;
+      font-size: 13px;
+    }
+    .status.success {
+      display: block;
+      background: rgba(20,184,166,0.12);
+      border: 1px solid var(--accent-teal);
+      color: #0B7A6A;
+    }
+    .status.error {
+      display: block;
+      background: rgba(244,114,107,0.12);
+      border: 1px solid var(--accent-coral);
+      color: #C0392B;
+    }
+    .status.info {
+      display: block;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid var(--accent);
+      color: #4A4DBF;
+    }
+
+    /* Placeholder */
+    .placeholder {
+      padding: 40px;
+      text-align: center;
+      color: var(--workspace-text-muted);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .viewer-header h1 { font-size: 15px; }
+      .tabs { padding: 6px 12px; gap: 2px; }
+      .tabs button { font-size: 12px; padding: 6px 12px; }
+      .content { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ====== HEADER (Dark) ====== -->
+<div class="viewer-header">
+  <h1>📊 Document Viewers</h1>
+  <button class="close-btn" onclick="closeViewer()">✕</button>
+</div>
+
+<!-- ====== UPLOAD AREA ====== -->
+<div class="upload-area" id="uploadArea">
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">📤</div>
+    <h3>Upload a document to view</h3>
+    <p>Supported: .xlsx, .pptx, .epub, .docx</p>
+    <input type="file" class="file-input" id="fileInput" accept=".xlsx,.pptx,.epub,.docx">
+    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+    <div class="status" id="uploadStatus"></div>
+  </div>
+</div>
+
+<!-- ====== TABS ====== -->
+<div class="tabs" id="tabs">
+  <button class="active" data-tab="excel">📊 Excel</button>
+  <button data-tab="ppt">📽️ PPT</button>
+  <button data-tab="epub">📖 E‑book</button>
+  <button data-tab="docx">📘 DOCX</button>
+</div>
+
+<!-- ====== CONTENT ====== -->
+<div class="content">
+
+  <!-- Excel Tab -->
+  <div class="tab-pane active" id="tab-excel">
+    <div id="excelViewer" class="viewer-container">
+      <div class="placeholder">Upload an Excel (.xlsx) file to view.</div>
+    </div>
+    <div id="excelToolbar" class="viewer-toolbar" style="display:none;">
+      <div class="file-info"><strong id="excelFileName">file.xlsx</strong></div>
+      <div class="actions">
+        <button onclick="downloadOriginal('excel')">⬇️ Download</button>
+      </div>
+    </div>
+    <div class="status" id="excelStatus"></div>
+  </div>
+
+  <!-- PPT Tab -->
+  <div class="tab-pane" id="tab-ppt">
+    <div id="pptViewer" class="viewer-container">
+      <div class="placeholder">Upload a PowerPoint (.pptx) file to view.</div>
+    </div>
+    <div id="pptToolbar" class="viewer-toolbar" style="display:none;">
+      <div class="file-info"><strong id="pptFileName">file.pptx</strong></div>
+      <div class="actions">
+        <button onclick="downloadOriginal('ppt')">⬇️ Download</button>
+      </div>
+    </div>
+    <div class="status" id="pptStatus"></div>
+  </div>
+
+  <!-- EPUB Tab -->
+  <div class="tab-pane" id="tab-epub">
+    <div id="epubViewer" class="viewer-container">
+      <div class="placeholder">Upload an E‑book (.epub) file to read.</div>
+    </div>
+    <div id="epubToolbar" class="viewer-toolbar" style="display:none;">
+      <div class="file-info"><strong id="epubFileName">book.epub</strong></div>
+      <div class="actions">
+        <button onclick="downloadOriginal('epub')">⬇️ Download</button>
+      </div>
+    </div>
+    <div class="status" id="epubStatus"></div>
+  </div>
+
+  <!-- DOCX Tab -->
+  <div class="tab-pane" id="tab-docx">
+    <div id="docxViewer" class="viewer-container">
+      <div class="placeholder">Upload a Word (.docx) file to view.</div>
+    </div>
+    <div id="docxToolbar" class="viewer-toolbar" style="display:none;">
+      <div class="file-info"><strong id="docxFileName">file.docx</strong></div>
+      <div class="actions">
+        <button onclick="downloadOriginal('docx')">⬇️ Download</button>
+      </div>
+    </div>
+    <div class="status" id="docxStatus"></div>
+  </div>
+
+</div>
+
+<!-- ====== FIREBASE ====== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+<script>
+  // ====== FIREBASE CONFIG ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyDdboIxnsvdJNVNN5GnRshWu7gctzBw6b0",
+    authDomain: "docustudio-1e91f.firebaseapp.com",
+    projectId: "docustudio-1e91f",
+    storageBucket: "docustudio-1e91f.firebasestorage.app",
+    messagingSenderId: "699941699006",
+    appId: "1:699941699006:web:863c41f668266de2284def",
+    measurementId: "G-9CZ0RXMJCQ"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  // ====== STATE ======
+  let currentUser = null;
+  let currentFile = null;       // File object for the current upload
+  let currentFileType = null;   // 'excel', 'ppt', 'epub', 'docx'
+  let currentFileName = null;
+  let currentFileURL = null;    // For download
+
+  // ====== AUTH ======
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      alert('Please sign in.');
+      window.parent.postMessage({ type: 'closeViewer' }, '*');
+      return;
+    }
+    currentUser = user;
+    const doc = await db.collection('users').doc(user.uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      const remaining = data.actionsRemaining || 0;
+      const plan = data.plan || 'free';
+      if (plan !== 'pro' && remaining <= 0) {
+        showStatus('uploadStatus', 'error', '❌ No actions left. Upgrade to Pro.');
+        document.getElementById('fileInput').disabled = true;
+        document.querySelector('.upload-btn').disabled = true;
+      }
+    }
+  });
+
+  // ====== UTILITY ======
+  function showStatus(elementId, type, msg) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.className = 'status ' + type;
+    el.textContent = msg;
+    clearTimeout(el._timeout);
+    el._timeout = setTimeout(() => { el.className = 'status'; el.textContent = ''; }, 5000);
+  }
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:12px 24px;border-radius:40px;font-size:13px;z-index:9999;border:1px solid rgba(255,255,255,0.08);font-family:Inter,sans-serif;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  async function checkAndDecrementAction() {
+    if (!currentUser) return false;
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (!doc.exists) return false;
+    const data = doc.data();
+    if (data.plan === 'pro') return true;
+    if ((data.actionsRemaining || 0) <= 0) {
+      showToast('❌ No actions left. Upgrade to Pro.');
+      return false;
+    }
+    await db.collection('users').doc(currentUser.uid).update({
+      actionsRemaining: (data.actionsRemaining || 0) - 1
+    });
+    return true;
+  }
+
+  async function logHistory(action, docName) {
+    if (!currentUser) return;
+    await db.collection('history').add({
+      userId: currentUser.uid,
+      action: action,
+      documentName: docName || 'Document',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    window.parent.postMessage({ type: 'actionUsed' }, '*');
+  }
+
+  // ====== FILE INPUT & DROP ======
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+
+  // ====== HANDLE FILE ======
+  async function handleFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const validExts = ['xlsx', 'pptx', 'epub', 'docx'];
+    if (!validExts.includes(ext)) {
+      showStatus('uploadStatus', 'error', '⚠️ Unsupported file type. Please upload .xlsx, .pptx, .epub, or .docx.');
+      return;
+    }
+
+    // Map extension to tab
+    const tabMap = {
+      'xlsx': 'excel',
+      'pptx': 'ppt',
+      'epub': 'epub',
+      'docx': 'docx'
+    };
+    const tab = tabMap[ext];
+    if (!tab) return;
+
+    // Check actions
+    if (!await checkAndDecrementAction()) return;
+
+    // Store file info
+    currentFile = file;
+    currentFileType = tab;
+    currentFileName = file.name;
+    currentFileURL = URL.createObjectURL(file); // for download
+
+    // Switch to the corresponding tab
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+
+    // Render the file in the appropriate viewer
+    try {
+      switch (tab) {
+        case 'excel':
+          await renderExcel(file);
+          document.getElementById('excelFileName').textContent = file.name;
+          document.getElementById('excelToolbar').style.display = 'flex';
+          showStatus('excelStatus', 'success', '✅ Excel file loaded.');
+          break;
+        case 'ppt':
+          await renderPPT(file);
+          document.getElementById('pptFileName').textContent = file.name;
+          document.getElementById('pptToolbar').style.display = 'flex';
+          showStatus('pptStatus', 'success', '✅ PowerPoint file loaded.');
+          break;
+        case 'epub':
+          await renderEPUB(file);
+          document.getElementById('epubFileName').textContent = file.name;
+          document.getElementById('epubToolbar').style.display = 'flex';
+          showStatus('epubStatus', 'success', '✅ E‑book loaded.');
+          break;
+        case 'docx':
+          await renderDOCX(file);
+          document.getElementById('docxFileName').textContent = file.name;
+          document.getElementById('docxToolbar').style.display = 'flex';
+          showStatus('docxStatus', 'success', '✅ Word document loaded.');
+          break;
+      }
+      // Log history
+      await logHistory(`View ${tab.toUpperCase()}`, file.name);
+    } catch (err) {
+      console.error(err);
+      showStatus('uploadStatus', 'error', '❌ Failed to render: ' + err.message);
+    }
+
+    // Hide upload status after success
+    showStatus('uploadStatus', 'success', `✅ ${file.name} loaded.`);
+  }
+
+  // ====== RENDER EXCEL ======
+  async function renderExcel(file) {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: 'array' });
+    const container = document.getElementById('excelViewer');
+    let html = '';
+    workbook.SheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      if (json.length === 0) return;
+      html += `<h4 style="margin:12px 0 8px;">${sheetName}</h4>`;
+      html += `<table>`;
+      json.forEach((row, idx) => {
+        html += `<tr>`;
+        row.forEach(cell => {
+          const tag = idx === 0 ? 'th' : 'td';
+          html += `<${tag}>${cell !== undefined ? cell : ''}</${tag}>`;
+        });
+        html += `</tr>`;
+      });
+      html += `</table>`;
+    });
+    if (!html) html = '<div class="placeholder">No data found in this Excel file.</div>';
+    container.innerHTML = html;
+  }
+
+  // ====== RENDER PPT ======
+  async function renderPPT(file) {
+    const data = await file.arrayBuffer();
+    // Use PPTX.js to parse and render slides
+    const container = document.getElementById('pptViewer');
+    // PPTX.js expects a file object, we can create a Blob
+    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+    const pptx = new PptxJS();
+    await pptx.load(blob);
+    let html = '';
+    pptx.slides.forEach((slide, index) => {
+      html += `<div class="slide">`;
+      html += `<h3>Slide ${index + 1}</h3>`;
+      // Extract text from slide shapes
+      const texts = [];
+      slide.shapes.forEach(shape => {
+        if (shape.text) {
+          texts.push(shape.text);
+        }
+      });
+      if (texts.length === 0) {
+        html += `<p>No text content on this slide.</p>`;
+      } else {
+        texts.forEach(t => {
+          html += `<p>${t}</p>`;
+        });
+      }
+      html += `</div>`;
+    });
+    if (!html) html = '<div class="placeholder">No slides found.</div>';
+    container.innerHTML = html;
+  }
+
+  // ====== RENDER EPUB ======
+  async function renderEPUB(file) {
+    const container = document.getElementById('epubViewer');
+    // EPUB.js can load from a blob URL
+    const url = URL.createObjectURL(file);
+    const book = ePub(url);
+    await book.ready;
+    const rendition = book.renderTo(container, { width: '100%', height: '100%' });
+    await rendition.display();
+    // Store book reference for cleanup
+    container._book = book;
+    container._rendition = rendition;
+    // Clear placeholder
+    container.querySelector('.placeholder')?.remove();
+  }
+
+  // ====== RENDER DOCX ======
+  async function renderDOCX(file) {
+    const data = await file.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer: data });
+    const container = document.getElementById('docxViewer');
+    container.innerHTML = `<div class="docx-view">${result.value}</div>`;
+    if (result.messages.length > 0) {
+      console.warn('Mammoth conversion messages:', result.messages);
+    }
+  }
+
+  // ====== DOWNLOAD ORIGINAL ======
+  function downloadOriginal(type) {
+    if (!currentFileURL || !currentFile) return;
+    const link = document.createElement('a');
+    link.href = currentFileURL;
+    link.download = currentFile.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // ====== TABS ======
+  document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ====== CLOSE ======
+  function closeViewer() {
+    window.parent.postMessage({ type: 'closeViewer' }, '*');
+  }
+
+  // ====== CLEANUP EPUB ON TAB SWITCH ======
+  // We can't easily clean EPUB on tab switch, but it's okay.
+
+  console.log('📊 Document Viewers loaded.');
+</script>
+</body>
+</html>

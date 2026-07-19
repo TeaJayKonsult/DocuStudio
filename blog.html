@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0F1115">
+  <title>DocuStudio — Blog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0A0C10;
+      --bg-hero: #0F1115;
+      --bg-card: #16181D;
+      --bg-card-hover: #1E2028;
+      --border: rgba(255,255,255,0.06);
+      --border-light: rgba(255,255,255,0.1);
+      --text-primary: #F0F0F5;
+      --text-secondary: #9CA3AF;
+      --text-muted: #5A5E6A;
+      --accent: #6366F1;
+      --accent-hover: #8184F8;
+      --accent-coral: #F4726B;
+      --accent-teal: #14B8A6;
+      --white: #FFFFFF;
+      --shadow-soft: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 80px rgba(99,102,241,0.1);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tj-header {
+      background: rgba(10,12,16,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .tj-header-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .tj-brand {
+      display: flex; align-items: center; gap: 10px; text-decoration: none;
+    }
+    .tj-brand-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 18px;
+    }
+    .tj-brand-text {
+      display: flex; flex-direction: column;
+    }
+    .tj-brand-name {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700; font-size: 18px;
+      color: var(--text-primary);
+    }
+    .tj-brand-sub {
+      font-size: 9px; color: var(--text-muted);
+      letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .tj-nav {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tj-nav a {
+      text-decoration: none; color: var(--text-secondary);
+      font-size: 14px; font-weight: 500; padding: 8px 16px;
+      border-radius: var(--radius-sm); transition: all 0.2s ease;
+    }
+    .tj-nav a:hover { color: var(--text-primary); background: var(--bg-card); }
+    .tj-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 10px 22px; border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .tj-btn-primary {
+      background: var(--accent); color: white;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+    }
+    .tj-btn-primary:hover {
+      background: var(--accent-hover); transform: translateY(-1px);
+    }
+    .tj-btn-outline {
+      background: transparent; color: var(--text-secondary);
+      border: 1.5px solid var(--border-light);
+    }
+    .tj-btn-outline:hover {
+      border-color: var(--text-primary); color: var(--text-primary);
+      background: var(--bg-card);
+    }
+    .page-hero {
+      padding: 120px 24px 40px;
+      max-width: 1200px; margin: 0 auto;
+      text-align: center;
+    }
+    .page-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .page-hero p {
+      font-size: 17px; color: var(--text-secondary);
+      max-width: 500px; margin: 0 auto;
+    }
+    .blog-grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .blog-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      transition: all 0.3s ease;
+    }
+    .blog-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-glow);
+    }
+    .blog-card .date {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+    .blog-card h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .blog-card .excerpt {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    .blog-card .full-content {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .blog-card .full-content strong {
+      color: var(--text-primary);
+    }
+    .blog-card .full-content a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .blog-card .full-content a:hover {
+      text-decoration: underline;
+    }
+    .blog-card .read-more {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-block;
+      margin-top: 4px;
+    }
+    .blog-card .read-more:hover {
+      text-decoration: underline;
+    }
+    .blog-card .hidden-content {
+      display: none;
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+    .blog-card .hidden-content.show {
+      display: block;
+    }
+
+    .footer {
+      background: var(--bg-dark);
+      border-top: 1px solid var(--border);
+      padding: 60px 24px 30px;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin-bottom: 50px;
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .footer-brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+    .footer-brand-text {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+    .footer-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 10px;
+      max-width: 260px;
+      line-height: 1.6;
+    }
+    .footer-links {
+      display: flex;
+      gap: 60px;
+      flex-wrap: wrap;
+    }
+    .footer-links h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .footer-links a {
+      display: block;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 11px;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+    .footer-share {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .share-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .share-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .share-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-bottom p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .blog-grid { grid-template-columns: 1fr; }
+      .tj-nav a { display: none; }
+      .page-hero { padding-top: 100px; }
+      .footer-top { flex-direction: column; }
+      .footer-links { gap: 30px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="tj-header">
+  <div class="tj-header-inner">
+    <a href="/" class="tj-brand">
+      <div class="tj-brand-icon">📄</div>
+      <div class="tj-brand-text">
+        <span class="tj-brand-name">DocuStudio</span>
+        <span class="tj-brand-sub">by TeaJay Konsult</span>
+      </div>
+    </a>
+    <nav class="tj-nav">
+      <a href="/">Home</a>
+      <a href="/#features">Features</a>
+      <a href="/pricing.html">Pricing</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/blog.html">Blog</a>
+      <a href="/dashboard.html" class="tj-btn tj-btn-primary" style="padding:8px 18px; font-size:13px;">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-hero">
+  <h1>DocuStudio Blog</h1>
+  <p>News, updates, and insights from the team — plus tips to get the most out of your document workflow.</p>
+</section>
+
+<div class="blog-grid">
+  <!-- Post 1: Launch Announcement -->
+  <article class="blog-card" id="post1">
+    <div class="date">July 19, 2026</div>
+    <h2>DocuStudio is Live! – Your All‑in‑One PDF Workspace</h2>
+    <div class="excerpt">After months of development, we're thrilled to announce that DocuStudio is officially open to the public. Here's what you can do right now.</div>
+    <div class="hidden-content" id="content1">
+      <div class="full-content">
+        <p><strong>📢 Big news, everyone.</strong></p>
+        <p>Today, we're taking the wraps off <strong>DocuStudio</strong> — a modern, PDF‑first document workspace built for professionals who need to edit, fill, sign, merge, convert, and protect PDFs without the hassle of desktop software.</p>
+        <p>Whether you're a freelancer sending contracts, a small business managing invoices, or a team collaborating on reports, DocuStudio gives you all the tools you need in one beautifully designed, mobile‑friendly web app.</p>
+        <p><strong>What's included from day one?</strong></p>
+        <ul style="margin:10px 0;padding-left:20px;color:var(--text-secondary);">
+          <li>✏️ PDF Editor – modify text, images, and layout</li>
+          <li>📝 PDF Form Filler – fill out interactive forms</li>
+          <li>🔗 Merge, Split, and Reorder pages</li>
+          <li>🔄 Convert PDF to Word, Excel, PowerPoint, and JPG</li>
+          <li>📄 Rich Text Editor – create new documents from scratch</li>
+          <li>📊 Spreadsheet Viewer (.xlsx)</li>
+          <li>📽️ Presentation Viewer (.pptx)</li>
+          <li>📖 E‑book Reader (.epub)</li>
+        </ul>
+        <p>And the best part? <strong>It's free</strong> for your first 5 actions each month. Upgrade to Pro for ₦700/month when you need unlimited access.</p>
+        <p><a href="/" style="color:var(--accent);text-decoration:none;font-weight:600;">Try it now →</a></p>
+      </div>
+    </div>
+    <a class="read-more" onclick="togglePost('content1', this)">Read More →</a>
+  </article>
+
+  <!-- Post 2: Pro Plan -->
+  <article class="blog-card" id="post2">
+    <div class="date">July 19, 2026</div>
+    <h2>Pro Plan: ₦700/month – What's Included</h2>
+    <div class="excerpt">We designed the Pro plan to give you everything you need to handle documents at scale. Here's a full breakdown of what you get for just ₦700 per month.</div>
+    <div class="hidden-content" id="content2">
+      <div class="full-content">
+        <p><strong>Why go Pro?</strong></p>
+        <p>If you're a professional who works with PDFs and documents daily, the free plan's 5‑action limit won't cut it. That's why we've created a <strong>simple, affordable Pro plan</strong> that removes all limits and adds premium features.</p>
+        <p><strong>What you get with Pro (₦700/month):</strong></p>
+        <ul style="margin:10px 0;padding-left:20px;color:var(--text-secondary);">
+          <li>✅ <strong>50 document actions</strong> per month</li>
+          <li>✅ <strong>Unlimited</strong> PDF Form Filler</li>
+          <li>✅ <strong>Unlimited</strong> PDF Editor</li>
+          <li>✅ <strong>Unlimited</strong> Merge / Split / Rearrange</li>
+          <li>✅ <strong>Unlimited</strong> Conversions</li>
+          <li>✅ <strong>Unlimited</strong> Rich Text Editor exports</li>
+          <li>✅ <strong>Unlimited</strong> document viewing</li>
+          <li>✅ <strong>Priority support</strong></li>
+          <li>✅ <strong>Export history</strong></li>
+        </ul>
+        <p><strong>Coming soon:</strong> Nomba + Paystack payment integration.</p>
+        <p><a href="/pricing.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Upgrade Now →</a></p>
+      </div>
+    </div>
+    <a class="read-more" onclick="togglePost('content2', this)">Read More →</a>
+  </article>
+
+  <!-- Post 3: Contact -->
+  <article class="blog-card" id="post3">
+    <div class="date">July 19, 2026</div>
+    <h2>How to Reach Us: We're Here for You</h2>
+    <div class="excerpt">Whether you have a question, need support, or want to collaborate, we've made it easy to get in touch. Here's how to connect with the DocuStudio team.</div>
+    <div class="hidden-content" id="content3">
+      <div class="full-content">
+        <p><strong>We're real people, and we love hearing from our users.</strong></p>
+        <p>DocuStudio is a product of <strong>TeaJay Konsult Ltd.</strong>, founded by Pamilerin Adetunji Ajala. We're building tools that make professional document work accessible to everyone.</p>
+        <p>Here's how you can reach us:</p>
+        <ul style="margin:10px 0;padding-left:20px;color:var(--text-secondary);">
+          <li>📧 <strong>Email:</strong> <a href="mailto:teajaykonsult@gmail.com" style="color:var(--accent);">teajaykonsult@gmail.com</a></li>
+          <li>💬 <strong>WhatsApp:</strong> <a href="https://wa.me/2349068290856" target="_blank" style="color:var(--accent);">+234 906 829 0856</a></li>
+          <li>🐦 <strong>X:</strong> <a href="https://x.com/teajaykonsult" target="_blank" style="color:var(--accent);">@teajaykonsult</a></li>
+        </ul>
+        <p><a href="/contact.html" style="color:var(--accent);text-decoration:none;font-weight:600;">Visit Contact Page →</a></p>
+      </div>
+    </div>
+    <a class="read-more" onclick="togglePost('content3', this)">Read More →</a>
+  </article>
+
+  <!-- Post 4: Form Filler Tutorial -->
+  <article class="blog-card" id="post4">
+    <div class="date">July 19, 2026</div>
+    <h2>How to Fill a PDF Form in 30 Seconds</h2>
+    <div class="excerpt">Stop printing and scanning. With DocuStudio's PDF Form Filler, you can complete and sign any PDF form in under a minute. Here's a step‑by‑step guide.</div>
+    <div class="hidden-content" id="content4">
+      <div class="full-content">
+        <p><strong>Forms don't have to be painful.</strong></p>
+        <p><strong>Here's how to fill a PDF form in 30 seconds:</strong></p>
+        <ol style="margin:10px 0;padding-left:20px;color:var(--text-secondary);">
+          <li><strong>Upload your PDF</strong> – drag and drop or choose from your device.</li>
+          <li><strong>DocuStudio detects form fields</strong> – text boxes, checkboxes, dropdowns.</li>
+          <li><strong>Click on any field</strong> and start typing, or select an option.</li>
+          <li><strong>Add your signature</strong> – draw, type, or upload a signature image.</li>
+          <li><strong>Download or share</strong> – your completed, signed PDF is ready.</li>
+        </ol>
+        <p><strong>Pro tip:</strong> With the Pro plan, you can fill unlimited forms.</p>
+        <p><a href="/" style="color:var(--accent);text-decoration:none;font-weight:600;">Try the Form Filler now →</a></p>
+      </div>
+    </div>
+    <a class="read-more" onclick="togglePost('content4', this)">Read More →</a>
+  </article>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">
+          <div class="footer-brand-icon">📄</div>
+          <span class="footer-brand-text">DocuStudio</span>
+        </div>
+        <p class="footer-desc">A product of TeaJay Konsult Ltd. The all‑in‑one PDF and document workspace for modern professionals.</p>
+      </div>
+      <div class="footer-links">
+        <div>
+          <h4>Product</h4>
+          <a href="/">Home</a>
+          <a href="/#features">Features</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/blog.html">Blog</a>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <a href="https://x.com/teajaykonsult" target="_blank">TeaJay Konsult</a>
+          <a href="/blog.html">Blog</a>
+          <a href="/contact.html">Contact</a>
+        </div>
+        <div>
+          <h4>Share</h4>
+          <div class="footer-share">
+            <a href="https://wa.me/?text=Check%20out%20DocuStudio%20by%20TeaJay%20Konsult%3A%20https%3A%2F%2Fdocustudio.vercel.app" class="share-btn" target="_blank" title="Share on WhatsApp" aria-label="WhatsApp">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://docustudio.vercel.app" class="share-btn" target="_blank" title="Share on Facebook" aria-label="Facebook">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </a>
+            <a href="https://twitter.com/intent/tweet?text=DocuStudio%20by%20%40teajaykonsult%20%E2%80%94%20The%20PDF-first%20document%20workspace&url=https://docustudio.vercel.app" class="share-btn" target="_blank" title="Share on X" aria-label="X">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 TeaJay Konsult Ltd. All rights reserved.</p>
+      <p>Built with care by Pamilerin Adetunji Ajala</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Toggle full blog post content
+  function togglePost(contentId, link) {
+    const content = document.getElementById(contentId);
+    if (content.classList.contains('show')) {
+      content.classList.remove('show');
+      link.textContent = 'Read More →';
+    } else {
+      content.classList.add('show');
+      link.textContent = 'Read Less ↑';
+    }
+  }
+
+  // ====== REAL FIREBASE CONFIG ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyDdboIxnsvdJNVNN5GnRshWu7gctzBw6b0",
+    authDomain: "docustudio-1e91f.firebaseapp.com",
+    projectId: "docustudio-1e91f",
+    storageBucket: "docustudio-1e91f.firebasestorage.app",
+    messagingSenderId: "699941699006",
+    appId: "1:699941699006:web:863c41f668266de2284def",
+    measurementId: "G-9CZ0RXMJCQ"
+  };
+</script>
+</body>
+</html>
