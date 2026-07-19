@@ -7,7 +7,6 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "firebase-admin": "^12.7.0",
-    "firebase": "^11.4.0"
+    "firebase-admin": "^12.7.0"
   }
 }

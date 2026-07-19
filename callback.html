@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Payment — DocuStudio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0A0C10;
+      color: #F0F0F5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 420px;
+      padding: 40px 32px;
+      background: #16181D;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 4px 60px rgba(0,0,0,0.4);
+    }
+    .icon { font-size: 64px; margin-bottom: 16px; }
+    .icon.success { color: #14B8A6; }
+    .icon.error { color: #F4726B; }
+    .icon.loading { animation: spin 2s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    p { color: #9CA3AF; font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      background: #6366F1;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #8184F8; transform: translateY(-1px); }
+    .btn-secondary {
+      background: transparent;
+      color: #9CA3AF;
+      border: 1.5px solid rgba(255,255,255,0.1);
+    }
+    .btn-secondary:hover { border-color: #F0F0F5; color: #F0F0F5; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.06);
+      border-top: 4px solid #6366F1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="callbackContainer">
+  <div id="loadingState">
+    <div class="spinner"></div>
+    <h1>Processing Payment</h1>
+    <p>Please wait while we confirm your transaction...</p>
+  </div>
+
+  <div id="successState" style="display:none;">
+    <div class="icon success">✅</div>
+    <h1>Payment Successful!</h1>
+    <p>Your account has been upgraded to Pro. You now have unlimited access to all features.</p>
+    <a href="/dashboard.html" class="btn">Go to Dashboard</a>
+  </div>
+
+  <div id="errorState" style="display:none;">
+    <div class="icon error">❌</div>
+    <h1>Payment Failed</h1>
+    <p id="errorMessage">Something went wrong with your payment. Please try again.</p>
+    <a href="/dashboard.html" class="btn">Try Again</a>
+  </div>
+
+  <div id="cancelState" style="display:none;">
+    <div class="icon error">⏹️</div>
+    <h1>Payment Cancelled</h1>
+    <p>You cancelled the payment. No charges were made to your account.</p>
+    <a href="/dashboard.html" class="btn btn-secondary">Return to Dashboard</a>
+  </div>
+</div>
+
+<script>
+  // ====== Parse URL Parameters ======
+  const urlParams = new URLSearchParams(window.location.search);
+  const status = urlParams.get('status');
+  const reference = urlParams.get('reference');
+  const message = urlParams.get('message');
+
+  const loadingState = document.getElementById('loadingState');
+  const successState = document.getElementById('successState');
+  const errorState = document.getElementById('errorState');
+  const cancelState = document.getElementById('cancelState');
+  const errorMessage = document.getElementById('errorMessage');
+
+  // ====== Show appropriate state ======
+  setTimeout(() => {
+    loadingState.style.display = 'none';
+
+    if (status === 'success') {
+      successState.style.display = 'block';
+      // Log the successful payment to console for debugging
+      console.log('✅ Payment successful. Reference:', reference);
+    } else if (status === 'cancelled') {
+      cancelState.style.display = 'block';
+    } else if (status === 'error') {
+      errorState.style.display = 'block';
+      if (message) errorMessage.textContent = message;
+    } else {
+      // No status parameter — check if we have a reference
+      if (reference) {
+        // Likely a success, but verify with the webhook
+        successState.style.display = 'block';
+      } else {
+        errorState.style.display = 'block';
+        errorMessage.textContent = 'Invalid payment response. Please contact support.';
+      }
+    }
+  }, 1500);
+
+  // ====== Auto-redirect to dashboard after success ======
+  if (status === 'success' || reference) {
+    setTimeout(() => {
+      window.location.href = '/dashboard.html';
+    }, 5000);
+  }
+</script>
+</body>
+</html>
