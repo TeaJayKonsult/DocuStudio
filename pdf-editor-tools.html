@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PDF Editor & Tools — DocuStudio</title>
-  <!-- PDF.js and PDF-lib -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
@@ -177,11 +176,7 @@
       display: none;
     }
     #signatureCanvas.active { display: block; }
-    .sign-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 12px;
-    }
+    .sign-actions { display: flex; gap: 12px; margin-top: 12px; }
     .sign-actions button {
       padding: 8px 20px;
       border: none;
@@ -270,17 +265,16 @@
       background: #1a1a2e;
       color: #0f0;
       font-family: monospace;
-      font-size: 12px;
+      font-size: 11px;
       padding: 8px;
-      margin-top: 12px;
-      max-height: 150px;
+      margin-top: 8px;
+      max-height: 120px;
       overflow-y: auto;
       border-radius: 4px;
       white-space: pre-wrap;
       word-break: break-all;
-      display: none;
+      display: block;
     }
-    #debug.show { display: block; }
     .debug-toggle {
       font-size: 12px;
       background: #333;
@@ -306,13 +300,13 @@
   <button class="close-btn" onclick="closeTool()">✕</button>
 </div>
 
-<div class="upload-area" id="uploadArea">
+<div class="upload-area">
   <div class="drop-zone" id="dropZone">
     <div class="icon">📤</div>
     <h3>Upload a PDF to work on</h3>
     <p>Drag & drop or click to browse</p>
     <input type="file" class="file-input" id="fileInput" accept=".pdf">
-    <button class="upload-btn">Choose PDF</button>
+    <button class="upload-btn" id="uploadBtn">Choose PDF</button>
     <div class="status" id="uploadStatus"></div>
   </div>
 </div>
@@ -326,7 +320,6 @@
 </div>
 
 <div class="content">
-
   <div class="tab-pane active" id="tab-fill">
     <div id="fillViewerContainer" style="display:none;">
       <div class="fill-tools">
@@ -418,19 +411,17 @@
       <div class="status" id="signStatus"></div>
     </div>
   </div>
-
 </div>
 
-<div style="padding:0 24px 8px; display:flex; justify-content:flex-end;">
-  <button class="debug-toggle" onclick="document.getElementById('debug').classList.toggle('show')">🐛 Toggle Debug</button>
+<div style="padding:0 24px 8px; display:flex; justify-content:space-between;">
+  <span style="font-size:11px; color:var(--workspace-text-muted);">🔧 Debug console</span>
+  <button class="debug-toggle" onclick="document.getElementById('debug').style.display = document.getElementById('debug').style.display === 'none' ? 'block' : 'none'">🐛 Toggle Debug</button>
 </div>
-<div id="debug"></div>
+<div id="debug" style="display:block;"></div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
 <script>
   // ====== DEBUG LOGGER ======
@@ -448,7 +439,7 @@
   document.addEventListener('DOMContentLoaded', function() {
     debugLog('📄 DOM ready');
 
-    // ====== FIREBASE CONFIG ======
+    // ====== FIREBASE ======
     const firebaseConfig = {
       apiKey: "AIzaSyDdboIxnsvdJNVNN5GnRshWu7gctzBw6b0",
       authDomain: "docustudio-1e91f.firebaseapp.com",
@@ -485,6 +476,8 @@
     let signatureImageData = null;
     let isProcessing = false;
 
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
     // ====== AUTH ======
     auth.onAuthStateChanged(function(user) {
       if (user) {
@@ -497,21 +490,16 @@
       }
     });
 
-    // ====== PDF.JS WORKER ======
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
     // ====== DOM REFS ======
     const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
     const dropZone = document.getElementById('dropZone');
-    const uploadBtn = document.querySelector('.upload-btn');
     const uploadStatus = document.getElementById('uploadStatus');
     const fillStatus = document.getElementById('fillStatus');
-
-    if (!fileInput || !dropZone || !uploadBtn) {
-      debugLog('❌ Critical DOM elements missing!');
-      alert('Page structure error. Please refresh.');
-      return;
-    }
+    const editStatus = document.getElementById('editStatus');
+    const mergeStatus = document.getElementById('mergeStatus');
+    const splitStatus = document.getElementById('splitStatus');
+    const signStatus = document.getElementById('signStatus');
 
     // ====== SHOW STATUS ======
     function showStatus(el, type, msg) {
@@ -521,39 +509,45 @@
       el.style.display = 'block';
       debugLog(msg);
       clearTimeout(el._timeout);
-      el._timeout = setTimeout(() => { el.style.display = 'none'; }, 6000);
+      el._timeout = setTimeout(() => { el.style.display = 'none'; }, 5000);
     }
 
     // ====== UPLOAD HANDLER ======
     async function handleUpload(file) {
+      if (isProcessing) return;
       debugLog('📄 Handling file: ' + file.name + ' (' + file.size + ' bytes)');
+
+      // Check if PDF
       if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
         showStatus(uploadStatus, 'error', '⚠️ Please select a PDF file.');
         return;
       }
+
       if (!currentUser) {
         showStatus(uploadStatus, 'error', '❌ Please sign in first.');
         return;
       }
 
+      isProcessing = true;
+      showStatus(uploadStatus, 'info', '⏳ Loading PDF...');
+
       try {
-        // Read as ArrayBuffer
+        // Read file
         const arrayBuffer = await file.arrayBuffer();
         debugLog('✅ File read, size: ' + arrayBuffer.byteLength);
 
         currentPDFFile = file;
         currentPDFData = arrayBuffer;
 
-        // Load PDF with PDF.js
+        // Load with PDF.js
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         pdfDoc = await loadingTask.promise;
         numPages = pdfDoc.numPages;
         pageNum = 1;
         debugLog('✅ PDF loaded, pages: ' + numPages);
 
-        // Render first page on the fill canvas
+        // Render on fill canvas
         const canvas = document.getElementById('pdfCanvas');
-        if (!canvas) throw new Error('Canvas missing');
         const ctx = canvas.getContext('2d');
         const page = await pdfDoc.getPage(1);
         const viewport = page.getViewport({ scale: 1 });
@@ -563,15 +557,16 @@
         canvas.width = scaledViewport.width;
         canvas.height = scaledViewport.height;
         await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-        debugLog('✅ First page rendered');
+        debugLog('✅ First page rendered on fill canvas');
 
-        // Also render on edit canvas
+        // Render on edit canvas
         const editCanvas = document.getElementById('editCanvas');
         if (editCanvas) {
           const ectx = editCanvas.getContext('2d');
           editCanvas.width = scaledViewport.width;
           editCanvas.height = scaledViewport.height;
           await page.render({ canvasContext: ectx, viewport: scaledViewport }).promise;
+          debugLog('✅ First page rendered on edit canvas');
         }
 
         // Show viewers
@@ -585,6 +580,8 @@
       } catch (err) {
         debugLog('❌ Upload error: ' + err.message);
         showStatus(uploadStatus, 'error', '❌ Failed: ' + err.message);
+      } finally {
+        isProcessing = false;
       }
     }
 
@@ -608,7 +605,7 @@
       } else {
         debugLog('⚠️ No file selected');
       }
-      this.value = ''; // reset
+      this.value = '';
     });
 
     dropZone.addEventListener('dragover', function(e) {
@@ -627,21 +624,18 @@
     });
 
     // ====== FILL & SIGN FUNCTIONS ======
-
-    function setFillTool(tool) {
+    window.setFillTool = function(tool) {
       fillTool = tool;
       document.querySelectorAll('.fill-tools button[data-tool]').forEach(b => b.classList.remove('active'));
-      document.querySelector(`.fill-tools button[data-tool="${tool}"]`).classList.add('active');
+      document.querySelector('.fill-tools button[data-tool="' + tool + '"]').classList.add('active');
       if (tool === 'signature') {
         document.getElementById('signatureCanvas').classList.add('active');
       } else {
         document.getElementById('signatureCanvas').classList.remove('active');
       }
       debugLog('🖊️ Tool set to: ' + tool);
-    }
-    window.setFillTool = setFillTool;
+    };
 
-    // Click on PDF canvas to add annotation
     document.getElementById('pdfCanvas').addEventListener('click', function(e) {
       if (!pdfDoc) {
         showStatus(fillStatus, 'error', 'Upload a PDF first.');
@@ -690,7 +684,6 @@
         canvas.width = scaledViewport.width;
         canvas.height = scaledViewport.height;
         pageObj.render({ canvasContext: ctx, viewport: scaledViewport });
-        // Draw annotations
         const pageAnnots = annotations.filter(a => a.page === page);
         pageAnnots.forEach(function(a) {
           if (a.type === 'text') {
@@ -710,7 +703,7 @@
       });
     }
 
-    // Signature drawing (on signature canvas)
+    // ====== SIGNATURE CANVAS (for Fill & Sign) ======
     (function setupSignatureCanvas() {
       const canvas = document.getElementById('signatureCanvas');
       const ctx = canvas.getContext('2d');
@@ -769,37 +762,34 @@
       canvas.addEventListener('touchend', endDraw, { passive: false });
     })();
 
-    function clearSignature() {
+    window.clearSignature = function() {
       const canvas = document.getElementById('signatureCanvas');
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       signatureImageData = null;
       debugLog('🧹 Signature cleared');
-    }
-    window.clearSignature = clearSignature;
+    };
 
-    function applySignature() {
+    window.applySignature = function() {
       showStatus(fillStatus, 'info', 'Click on the PDF to place your signature.');
-    }
-    window.applySignature = applySignature;
+    };
 
-    function clearAnnotations() {
+    window.clearAnnotations = function() {
       if (annotations.length === 0) return;
       if (!confirm('Clear all annotations?')) return;
       annotations = [];
       renderPageWithAnnotations(pageNum);
       showStatus(fillStatus, 'success', '✅ All annotations cleared.');
       debugLog('🧹 All annotations cleared');
-    }
-    window.clearAnnotations = clearAnnotations;
+    };
 
     // ====== SAVE FILLED PDF ======
-    async function saveFilledPDF() {
+    window.saveFilledPDF = async function() {
       if (!currentPDFData) { showStatus(fillStatus, 'error', 'Upload a PDF first.'); return; }
       if (annotations.length === 0) { showStatus(fillStatus, 'error', 'No annotations to save.'); return; }
 
-      // Check action count (simplified)
+      // Check action limit (simplified)
       try {
         const doc = await db.collection('users').doc(currentUser.uid).get();
         if (doc.exists && doc.data().plan !== 'pro' && (doc.data().actionsRemaining || 0) <= 0) {
@@ -867,7 +857,7 @@
         link.click();
         URL.revokeObjectURL(url);
 
-        // Log history (simplified)
+        // Log history
         try {
           await db.collection('history').add({
             userId: currentUser.uid,
@@ -884,14 +874,13 @@
         debugLog('❌ Save error: ' + err.message);
         showStatus(fillStatus, 'error', '❌ ' + err.message);
       }
-    }
-    window.saveFilledPDF = saveFilledPDF;
+    };
 
     // ====== EDIT TAB ======
     document.getElementById('addTextBtn').addEventListener('click', function() {
-      if (!currentPDFData) { showStatus(document.getElementById('editStatus'), 'error', 'Upload a PDF first.'); return; }
+      if (!currentPDFData) { showStatus(editStatus, 'error', 'Upload a PDF first.'); return; }
       const text = document.getElementById('textInput').value.trim();
-      if (!text) { showStatus(document.getElementById('editStatus'), 'error', 'Enter text.'); return; }
+      if (!text) { showStatus(editStatus, 'error', 'Enter text.'); return; }
       const color = document.getElementById('textColor').value;
       const size = parseInt(document.getElementById('textSize').value);
       const canvas = document.getElementById('editCanvas');
@@ -899,20 +888,22 @@
       const y = canvas.height / 2 + 10;
       editActions.push({ page: pageNum, x, y, text, color, size });
       renderEditPage(pageNum);
-      showStatus(document.getElementById('editStatus'), 'success', '✅ Text added. Click "Download Edited PDF" to save.');
+      showStatus(editStatus, 'success', '✅ Text added. Click "Download Edited PDF" to save.');
     });
 
     document.getElementById('downloadEditBtn').addEventListener('click', async function() {
-      if (!currentPDFData) { showStatus(document.getElementById('editStatus'), 'error', 'Upload a PDF first.'); return; }
-      if (editActions.length === 0) { showStatus(document.getElementById('editStatus'), 'error', 'No text added.'); return; }
+      if (!currentPDFData) { showStatus(editStatus, 'error', 'Upload a PDF first.'); return; }
+      if (editActions.length === 0) { showStatus(editStatus, 'error', 'No text added.'); return; }
+
       // Check actions
       try {
         const doc = await db.collection('users').doc(currentUser.uid).get();
         if (doc.exists && doc.data().plan !== 'pro' && (doc.data().actionsRemaining || 0) <= 0) {
-          showStatus(document.getElementById('editStatus'), 'error', '❌ No actions left. Upgrade to Pro.');
+          showStatus(editStatus, 'error', '❌ No actions left. Upgrade to Pro.');
           return;
         }
       } catch(e) {}
+
       try {
         const pdfLib = PDFLib;
         const pdfDocLib = await pdfLib.PDFDocument.load(currentPDFData);
@@ -952,9 +943,9 @@
           });
           window.parent.postMessage({ type: 'actionUsed' }, '*');
         } catch(e) {}
-        showStatus(document.getElementById('editStatus'), 'success', '✅ PDF downloaded with your edits.');
+        showStatus(editStatus, 'success', '✅ PDF downloaded with your edits.');
       } catch (err) {
-        showStatus(document.getElementById('editStatus'), 'error', '❌ ' + err.message);
+        showStatus(editStatus, 'error', '❌ ' + err.message);
       }
     });
 
@@ -1015,15 +1006,7 @@
     });
 
     document.getElementById('mergeBtn').addEventListener('click', async function() {
-      if (mergeFiles.length < 2) { showStatus(document.getElementById('mergeStatus'), 'error', 'Add at least 2 PDFs.'); return; }
-      // Check actions
-      try {
-        const doc = await db.collection('users').doc(currentUser.uid).get();
-        if (doc.exists && doc.data().plan !== 'pro' && (doc.data().actionsRemaining || 0) <= 0) {
-          showStatus(document.getElementById('mergeStatus'), 'error', '❌ No actions left. Upgrade to Pro.');
-          return;
-        }
-      } catch(e) {}
+      if (mergeFiles.length < 2) { showStatus(mergeStatus, 'error', 'Add at least 2 PDFs.'); return; }
       try {
         const pdfLib = PDFLib;
         const mergedPdf = await pdfLib.PDFDocument.create();
@@ -1051,9 +1034,9 @@
           });
           window.parent.postMessage({ type: 'actionUsed' }, '*');
         } catch(e) {}
-        showStatus(document.getElementById('mergeStatus'), 'success', '✅ PDFs merged and downloaded.');
+        showStatus(mergeStatus, 'success', '✅ PDFs merged and downloaded.');
       } catch (err) {
-        showStatus(document.getElementById('mergeStatus'), 'error', '❌ ' + err.message);
+        showStatus(mergeStatus, 'error', '❌ ' + err.message);
       }
     });
 
@@ -1072,7 +1055,7 @@
             window._splitPdfBytes = ev.target.result;
             window._splitFileName = file.name;
           } catch (err) {
-            showStatus(document.getElementById('splitStatus'), 'error', '❌ ' + err.message);
+            showStatus(splitStatus, 'error', '❌ ' + err.message);
           }
         };
         reader.readAsArrayBuffer(file);
@@ -1081,16 +1064,8 @@
 
     document.getElementById('splitBtn').addEventListener('click', async function() {
       const rangeInput = document.getElementById('splitRange').value.trim();
-      if (!rangeInput) { showStatus(document.getElementById('splitStatus'), 'error', 'Enter page range.'); return; }
-      if (!window._splitPdfBytes) { showStatus(document.getElementById('splitStatus'), 'error', 'Upload a PDF first.'); return; }
-      // Check actions
-      try {
-        const doc = await db.collection('users').doc(currentUser.uid).get();
-        if (doc.exists && doc.data().plan !== 'pro' && (doc.data().actionsRemaining || 0) <= 0) {
-          showStatus(document.getElementById('splitStatus'), 'error', '❌ No actions left. Upgrade to Pro.');
-          return;
-        }
-      } catch(e) {}
+      if (!rangeInput) { showStatus(splitStatus, 'error', 'Enter page range.'); return; }
+      if (!window._splitPdfBytes) { showStatus(splitStatus, 'error', 'Upload a PDF first.'); return; }
       try {
         const pdfLib = PDFLib;
         const pdf = await pdfLib.PDFDocument.load(window._splitPdfBytes);
@@ -1108,7 +1083,7 @@
             if (num >= 1 && num <= totalPages) selectedIndices.push(num - 1);
           }
         }
-        if (selectedIndices.length === 0) { showStatus(document.getElementById('splitStatus'), 'error', 'No valid pages selected.'); return; }
+        if (selectedIndices.length === 0) { showStatus(splitStatus, 'error', 'No valid pages selected.'); return; }
         const newPdf = await pdfLib.PDFDocument.create();
         const pages = await newPdf.copyPages(pdf, selectedIndices);
         pages.forEach(page => newPdf.addPage(page));
@@ -1129,9 +1104,9 @@
           });
           window.parent.postMessage({ type: 'actionUsed' }, '*');
         } catch(e) {}
-        showStatus(document.getElementById('splitStatus'), 'success', '✅ Pages extracted and downloaded.');
+        showStatus(splitStatus, 'success', '✅ Pages extracted and downloaded.');
       } catch (err) {
-        showStatus(document.getElementById('splitStatus'), 'error', '❌ ' + err.message);
+        showStatus(splitStatus, 'error', '❌ ' + err.message);
       }
     });
 
@@ -1204,27 +1179,18 @@
       canvas.addEventListener('touchend', endDraw, { passive: false });
     }
 
-    function clearSignCanvas() {
+    window.clearSignCanvas = function() {
       const canvas = document.getElementById('signCanvas');
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       window._signImageData = null;
       debugLog('🧹 Standalone signature cleared');
-    }
-    window.clearSignCanvas = clearSignCanvas;
+    };
 
-    async function applySignToPDF() {
-      if (!window._signFile) { showStatus(document.getElementById('signStatus'), 'error', 'Upload a PDF first.'); return; }
-      if (!window._signImageData) { showStatus(document.getElementById('signStatus'), 'error', 'Draw a signature first.'); return; }
-      // Check actions
-      try {
-        const doc = await db.collection('users').doc(currentUser.uid).get();
-        if (doc.exists && doc.data().plan !== 'pro' && (doc.data().actionsRemaining || 0) <= 0) {
-          showStatus(document.getElementById('signStatus'), 'error', '❌ No actions left. Upgrade to Pro.');
-          return;
-        }
-      } catch(e) {}
+    window.applySignToPDF = async function() {
+      if (!window._signFile) { showStatus(signStatus, 'error', 'Upload a PDF first.'); return; }
+      if (!window._signImageData) { showStatus(signStatus, 'error', 'Draw a signature first.'); return; }
       try {
         const pdfLib = PDFLib;
         const arrayBuffer = await window._signFile.arrayBuffer();
@@ -1255,12 +1221,11 @@
           });
           window.parent.postMessage({ type: 'actionUsed' }, '*');
         } catch(e) {}
-        showStatus(document.getElementById('signStatus'), 'success', '✅ Signature applied and downloaded.');
+        showStatus(signStatus, 'success', '✅ Signature applied and downloaded.');
       } catch (err) {
-        showStatus(document.getElementById('signStatus'), 'error', '❌ ' + err.message);
+        showStatus(signStatus, 'error', '❌ ' + err.message);
       }
-    }
-    window.applySignToPDF = applySignToPDF;
+    };
 
     // ====== TABS ======
     document.querySelectorAll('.tabs button').forEach(function(btn) {
