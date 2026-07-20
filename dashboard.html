@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* --- Same styles as previous dashboard --- */
+    /* --- Variables --- */
     :root {
       --bg-dark: #0A0C10;
       --bg-hero: #0F1115;
@@ -453,7 +453,7 @@
     <nav class="tj-nav">
       <a href="/">Home</a>
       <a href="/#features">Features</a>
-      <a href="/pricing.html">Pricing</a>
+      <a href="/pricing.html">Pricing</a>   <!-- ✅ Correct link -->
       <a href="/contact.html">Contact</a>
       <a href="/blog.html">Blog</a>
       <a href="#" onclick="logoutUser(); return false;" class="tj-btn tj-btn-outline" style="padding:6px 16px; font-size:12px;">Logout</a>
@@ -517,7 +517,7 @@
       <div class="coming-soon ready">✅ Ready</div>
     </div>
 
-    <!-- PDF Editor & Tools (Grouped) -->
+    <!-- PDF Editor & Tools -->
     <div class="tool-card" data-tool="pdf-editor-tools">
       <div class="icon">📝</div>
       <div class="name">PDF Editor & Tools</div>
@@ -525,15 +525,13 @@
       <div class="coming-soon ready">✅ Ready</div>
     </div>
 
-    <!-- Viewers (Grouped in next step) – Placeholder for now -->
-    <div class="tool-card" style="opacity:0.6;">
+    <!-- Document Viewers (Active) -->
+    <div class="tool-card" data-tool="document-viewers">
       <div class="icon">📊</div>
       <div class="name">Document Viewers</div>
       <div class="badge">Excel, PPT, E‑book, DOCX</div>
-      <div class="coming-soon">🚧 Coming Soon</div>
+      <div class="coming-soon ready">✅ Ready</div>
     </div>
-
-    <!-- Individual tools removed – now grouped -->
   </div>
 
   <!-- Upgrade Banner -->
@@ -602,7 +600,8 @@
   const storage = firebase.storage();
 
   // ====== PAYSTACK PUBLIC KEY ======
-  const PAYSTACK_PUBLIC_KEY = 'pk_live_c1801c0fff24df640d099671c8f06d8e81d9670a';
+  // REPLACE WITH YOUR LIVE PUBLIC KEY
+  const PAYSTACK_PUBLIC_KEY = 'pk_live_YOUR_PUBLIC_KEY_HERE';
 
   // ====== DOM REFS ======
   const dashboard = document.getElementById('dashboardContainer');
@@ -739,7 +738,8 @@
     const map = {
       'pdf-viewer': '/pdf-viewer.html',
       'text-editor': '/text-editor.html',
-      'pdf-editor-tools': '/pdf-editor-tools.html'
+      'pdf-editor-tools': '/pdf-editor-tools.html',
+      'document-viewers': '/document-viewers.html'   // ✅ Now active
     };
     if (!map[tool]) { showToast('🚧 Coming soon!'); return; }
     iframe.src = map[tool];
