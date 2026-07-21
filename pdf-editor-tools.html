@@ -44,27 +44,24 @@
       background: #FFFFFF;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      position: relative;
     }
     .drop-zone:hover { border-color: #6366F1; background: #F0F0FF; }
     .drop-zone .icon { font-size: 32px; }
     .drop-zone h3 { font-size: 16px; font-weight: 600; margin: 6px 0; }
     .drop-zone p { font-size: 13px; color: #4B5563; }
-    .file-input {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
+    .file-input { display: none; }
+    .upload-btn {
+      margin-top: 12px;
+      padding: 8px 24px;
+      background: #6366F1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
     }
-    .drop-zone label {
-      display: block;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-    }
+    .upload-btn:hover { background: #8184F8; }
     .tools {
       display: flex;
       gap: 8px;
@@ -73,6 +70,7 @@
       border-bottom: 1px solid #E5E7EB;
       flex-wrap: wrap;
       flex-shrink: 0;
+      display: none;
     }
     .tools button {
       padding: 6px 16px;
@@ -105,13 +103,13 @@
       max-width: 800px;
       width: 100%;
       margin: 0 auto;
-      display: block;
+      display: none;
       box-shadow: 0 4px 24px rgba(0,0,0,0.1);
       border-radius: 8px;
       background: white;
       cursor: crosshair;
-      min-height: 200px; /* So you can see if it's blank */
-      border: 1px solid #E5E7EB;
+      min-height: 300px;
+      border: 2px solid #E5E7EB;
     }
     #signatureCanvas {
       border: 2px solid #E5E7EB;
@@ -167,18 +165,9 @@
       border-radius: 6px;
       max-height: 120px;
       overflow-y: auto;
-      display: block; /* Always visible */
       white-space: pre-wrap;
       word-break: break-all;
-    }
-    .debug-toggle {
-      font-size: 11px;
-      background: #333;
-      color: #fff;
-      border: none;
-      padding: 2px 10px;
-      border-radius: 4px;
-      cursor: pointer;
+      display: block;
     }
     @media (max-width: 600px) {
       .tools { padding: 8px 12px; gap: 4px; }
@@ -196,17 +185,16 @@
 
 <div class="upload-area">
   <div class="drop-zone" id="dropZone">
-    <label for="fileInput">
-      <div class="icon">📤</div>
-      <h3>Upload a PDF</h3>
-      <p>Tap to choose or drag & drop</p>
-    </label>
-    <input type="file" id="fileInput" accept=".pdf" style="display:none;">
+    <div class="icon">📤</div>
+    <h3>Upload a PDF</h3>
+    <p>Tap to choose or drag & drop</p>
+    <input type="file" class="file-input" id="fileInput" accept=".pdf">
+    <button class="upload-btn" id="uploadBtn">Choose PDF</button>
   </div>
   <div class="status" id="uploadStatus"></div>
 </div>
 
-<div class="tools" id="toolsBar" style="display:none;">
+<div class="tools" id="toolsBar">
   <button class="active" data-tool="text" onclick="setTool('text')">✏️ Text</button>
   <button data-tool="checkbox" onclick="setTool('checkbox')">☑️ Check</button>
   <button data-tool="signature" onclick="setTool('signature')">🖊️ Sign</button>
@@ -221,7 +209,7 @@
       <p>Upload a PDF to start filling</p>
     </div>
   </div>
-  <canvas id="pdfCanvas" style="display:none;"></canvas>
+  <canvas id="pdfCanvas"></canvas>
   <canvas id="signatureCanvas"></canvas>
   <div class="sign-actions" id="signActions" style="display:none;">
     <button onclick="clearSignature()">Clear</button>
@@ -269,6 +257,7 @@
 
   // ====== DOM REFS ======
   const fileInput = document.getElementById('fileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
   const dropZone = document.getElementById('dropZone');
   const uploadStatus = document.getElementById('uploadStatus');
   const fillStatus = document.getElementById('fillStatus');
@@ -289,6 +278,12 @@
   }
   debugLog('🔧 Debug ready');
 
+  // ====== ALERT TEST ======
+  function showAlert(msg) {
+    alert(msg);
+    debugLog('ALERT: ' + msg);
+  }
+
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
   // ====== SHOW STATUS ======
@@ -303,26 +298,32 @@
 
   // ====== UPLOAD ======
   async function handleFile(file) {
+    showAlert('1️⃣ File selected: ' + file.name);
+    debugLog('📄 Handling file: ' + file.name + ' (' + file.size + ' bytes)');
+
     if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
       showStatus(uploadStatus, 'error', '⚠️ Please select a PDF file.');
+      showAlert('❌ Not a PDF file');
       return;
     }
     if (!currentUser) {
       showStatus(uploadStatus, 'error', '❌ Please sign in first.');
+      showAlert('❌ Not signed in');
       return;
     }
 
-    debugLog('📄 Handling file: ' + file.name + ' (' + file.size + ' bytes)');
-
     try {
       const arrayBuffer = await file.arrayBuffer();
+      showAlert('2️⃣ File loaded, size: ' + arrayBuffer.byteLength);
+      debugLog('✅ File loaded, size: ' + arrayBuffer.byteLength);
+
       currentFile = file;
       currentData = arrayBuffer;
-      debugLog('✅ File loaded, size: ' + arrayBuffer.byteLength);
 
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       pdfDoc = await loadingTask.promise;
       pageNum = 1;
+      showAlert('3️⃣ PDF loaded, pages: ' + pdfDoc.numPages);
       debugLog('✅ PDF loaded, pages: ' + pdfDoc.numPages);
 
       // Render first page
@@ -332,25 +333,24 @@
       const scale = containerWidth / viewport.width;
       const scaledViewport = page.getViewport({ scale: scale });
 
-      // Set canvas dimensions and make it visible
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
       canvas.style.display = 'block';
       document.getElementById('placeholder').style.display = 'none';
 
-      // Render with error catching
-      const renderTask = page.render({ canvasContext: ctx, viewport: scaledViewport });
-      await renderTask.promise;
+      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+      showAlert('4️⃣ ✅ First page rendered successfully');
       debugLog('✅ First page rendered successfully');
 
-      // Show tools
       toolsBar.style.display = 'flex';
-      showStatus(uploadStatus, 'success', '✅ PDF loaded! Tap to add text, checkboxes, or signature.');
+      showStatus(uploadStatus, 'success', '✅ PDF loaded!');
       showStatus(fillStatus, 'info', '🟢 Click on the PDF to add content.');
     } catch (err) {
+      showAlert('❌ Error: ' + err.message);
       debugLog('❌ Error: ' + err.message);
       showStatus(uploadStatus, 'error', '❌ Failed: ' + err.message);
-      // Try to show canvas with an error message
+
+      // Show error on canvas
       canvas.style.display = 'block';
       canvas.width = 300;
       canvas.height = 100;
@@ -358,18 +358,33 @@
       ctx.fillRect(0, 0, 300, 100);
       ctx.fillStyle = '#721c24';
       ctx.font = '16px Inter, sans-serif';
-      ctx.fillText('Error loading PDF: ' + err.message, 10, 50);
+      ctx.fillText('Error: ' + err.message, 10, 50);
     }
   }
 
   // ====== EVENT LISTENERS ======
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) {
-      handleFile(e.target.files[0]);
-    }
-    e.target.value = ''; // reset
+  uploadBtn.addEventListener('click', function() {
+    showAlert('📁 Upload button clicked');
+    fileInput.click();
   });
 
+  dropZone.addEventListener('click', function(e) {
+    if (e.target.classList.contains('upload-btn')) return;
+    showAlert('📁 Drop zone clicked');
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function(e) {
+    showAlert('📁 File input changed');
+    if (this.files && this.files.length > 0) {
+      handleFile(this.files[0]);
+    } else {
+      showAlert('⚠️ No file selected');
+    }
+    this.value = '';
+  });
+
+  // Drag and drop
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#6366F1'; });
   dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#E5E7EB'; });
   dropZone.addEventListener('drop', (e) => {
@@ -438,7 +453,6 @@
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
       pageObj.render({ canvasContext: ctx, viewport: scaledViewport }).then(() => {
-        // Draw annotations
         const pageAnnots = annotations.filter(a => a.page === page);
         pageAnnots.forEach(a => {
           if (a.type === 'text') {
@@ -586,7 +600,7 @@
     window.parent.postMessage({ type: 'closeViewer' }, '*');
   };
 
-  debugLog('✅ Worker src: ' + pdfjsLib.GlobalWorkerOptions.workerSrc);
+  debugLog('✅ Ready');
 </script>
 </body>
 </html>
