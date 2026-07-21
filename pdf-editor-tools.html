@@ -342,7 +342,6 @@
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
       pageObj.render({ canvasContext: ctx, viewport: scaledViewport }).then(() => {
-        // Draw annotations
         const pageAnnots = annotations.filter(a => a.page === page);
         pageAnnots.forEach(a => {
           if (a.type === 'text') {
@@ -557,7 +556,6 @@
     this.value = '';
   });
 
-  // Drag and drop
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#6366F1'; });
   dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#E5E7EB'; });
   dropZone.addEventListener('drop', (e) => {
