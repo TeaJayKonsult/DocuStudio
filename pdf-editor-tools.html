@@ -50,8 +50,6 @@
     .drop-zone .icon { font-size: 32px; }
     .drop-zone h3 { font-size: 16px; font-weight: 600; margin: 6px 0; }
     .drop-zone p { font-size: 13px; color: #4B5563; }
-
-    /* Hidden file input – but we use a label to trigger it */
     .file-input {
       position: absolute;
       left: 0;
@@ -61,18 +59,12 @@
       opacity: 0;
       cursor: pointer;
     }
-
-    /* The visible button is now a label that covers the whole drop zone */
     .drop-zone label {
       display: block;
       width: 100%;
       height: 100%;
       cursor: pointer;
     }
-
-    /* Keep the existing button text, but we'll hide the old button */
-    .old-upload-btn { display: none; }
-
     .tools {
       display: flex;
       gap: 8px;
@@ -118,6 +110,8 @@
       border-radius: 8px;
       background: white;
       cursor: crosshair;
+      min-height: 200px; /* So you can see if it's blank */
+      border: 1px solid #E5E7EB;
     }
     #signatureCanvas {
       border: 2px solid #E5E7EB;
@@ -167,17 +161,16 @@
       background: #1a1a2e;
       color: #0f0;
       font-family: monospace;
-      font-size: 12px;
+      font-size: 11px;
       padding: 8px;
       margin: 8px 24px;
       border-radius: 6px;
-      max-height: 100px;
+      max-height: 120px;
       overflow-y: auto;
-      display: none;
+      display: block; /* Always visible */
       white-space: pre-wrap;
       word-break: break-all;
     }
-    #debugInfo.show { display: block; }
     .debug-toggle {
       font-size: 11px;
       background: #333;
@@ -203,14 +196,12 @@
 
 <div class="upload-area">
   <div class="drop-zone" id="dropZone">
-    <!-- The file input is now inside a label that covers the entire drop zone -->
     <label for="fileInput">
       <div class="icon">📤</div>
       <h3>Upload a PDF</h3>
       <p>Tap to choose or drag & drop</p>
     </label>
     <input type="file" id="fileInput" accept=".pdf" style="display:none;">
-    <!-- We removed the old button, but keep the hidden input -->
   </div>
   <div class="status" id="uploadStatus"></div>
 </div>
@@ -240,9 +231,6 @@
 
 <div class="status" id="fillStatus"></div>
 
-<div style="display:flex; justify-content:flex-end; padding:0 24px 8px;">
-  <button class="debug-toggle" onclick="document.getElementById('debugInfo').classList.toggle('show')">🐛 Debug</button>
-</div>
 <div id="debugInfo"></div>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -343,26 +331,38 @@
       const containerWidth = Math.min(800, window.innerWidth - 48);
       const scale = containerWidth / viewport.width;
       const scaledViewport = page.getViewport({ scale: scale });
+
+      // Set canvas dimensions and make it visible
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
-      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-
-      // Show canvas
       canvas.style.display = 'block';
       document.getElementById('placeholder').style.display = 'none';
+
+      // Render with error catching
+      const renderTask = page.render({ canvasContext: ctx, viewport: scaledViewport });
+      await renderTask.promise;
+      debugLog('✅ First page rendered successfully');
+
+      // Show tools
       toolsBar.style.display = 'flex';
       showStatus(uploadStatus, 'success', '✅ PDF loaded! Tap to add text, checkboxes, or signature.');
       showStatus(fillStatus, 'info', '🟢 Click on the PDF to add content.');
-      debugLog('✅ First page rendered');
     } catch (err) {
       debugLog('❌ Error: ' + err.message);
       showStatus(uploadStatus, 'error', '❌ Failed: ' + err.message);
+      // Try to show canvas with an error message
+      canvas.style.display = 'block';
+      canvas.width = 300;
+      canvas.height = 100;
+      ctx.fillStyle = '#f8d7da';
+      ctx.fillRect(0, 0, 300, 100);
+      ctx.fillStyle = '#721c24';
+      ctx.font = '16px Inter, sans-serif';
+      ctx.fillText('Error loading PDF: ' + err.message, 10, 50);
     }
   }
 
   // ====== EVENT LISTENERS ======
-  // The label triggers the file input directly via 'for' attribute
-  // We also need to handle the drop zone for drag and drop
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length) {
       handleFile(e.target.files[0]);
@@ -370,7 +370,6 @@
     e.target.value = ''; // reset
   });
 
-  // Drag and drop support (keep)
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#6366F1'; });
   dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#E5E7EB'; });
   dropZone.addEventListener('drop', (e) => {
@@ -587,7 +586,6 @@
     window.parent.postMessage({ type: 'closeViewer' }, '*');
   };
 
-  // ====== WORKER TEST ======
   debugLog('✅ Worker src: ' + pdfjsLib.GlobalWorkerOptions.workerSrc);
 </script>
 </body>
