@@ -44,24 +44,35 @@
       background: #FFFFFF;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      position: relative;
     }
     .drop-zone:hover { border-color: #6366F1; background: #F0F0FF; }
     .drop-zone .icon { font-size: 32px; }
     .drop-zone h3 { font-size: 16px; font-weight: 600; margin: 6px 0; }
     .drop-zone p { font-size: 13px; color: #4B5563; }
-    .drop-zone .file-input { display: none; }
-    .drop-zone .upload-btn {
-      margin-top: 12px;
-      padding: 8px 24px;
-      background: #6366F1;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
+
+    /* Hidden file input – but we use a label to trigger it */
+    .file-input {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
       cursor: pointer;
     }
-    .drop-zone .upload-btn:hover { background: #8184F8; }
+
+    /* The visible button is now a label that covers the whole drop zone */
+    .drop-zone label {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    /* Keep the existing button text, but we'll hide the old button */
+    .old-upload-btn { display: none; }
+
     .tools {
       display: flex;
       gap: 8px;
@@ -192,11 +203,14 @@
 
 <div class="upload-area">
   <div class="drop-zone" id="dropZone">
-    <div class="icon">📤</div>
-    <h3>Upload a PDF</h3>
-    <p>Tap to choose or drag & drop</p>
-    <input type="file" class="file-input" id="fileInput" accept=".pdf">
-    <button class="upload-btn" id="uploadBtn">Choose PDF</button>
+    <!-- The file input is now inside a label that covers the entire drop zone -->
+    <label for="fileInput">
+      <div class="icon">📤</div>
+      <h3>Upload a PDF</h3>
+      <p>Tap to choose or drag & drop</p>
+    </label>
+    <input type="file" id="fileInput" accept=".pdf" style="display:none;">
+    <!-- We removed the old button, but keep the hidden input -->
   </div>
   <div class="status" id="uploadStatus"></div>
 </div>
@@ -267,7 +281,6 @@
 
   // ====== DOM REFS ======
   const fileInput = document.getElementById('fileInput');
-  const uploadBtn = document.getElementById('uploadBtn');
   const dropZone = document.getElementById('dropZone');
   const uploadStatus = document.getElementById('uploadStatus');
   const fillStatus = document.getElementById('fillStatus');
@@ -348,16 +361,16 @@
   }
 
   // ====== EVENT LISTENERS ======
-  uploadBtn.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('click', (e) => {
-    if (e.target.classList.contains('upload-btn')) return;
-    fileInput.click();
-  });
+  // The label triggers the file input directly via 'for' attribute
+  // We also need to handle the drop zone for drag and drop
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) handleFile(e.target.files[0]);
-    e.target.value = '';
+    if (e.target.files.length) {
+      handleFile(e.target.files[0]);
+    }
+    e.target.value = ''; // reset
   });
 
+  // Drag and drop support (keep)
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#6366F1'; });
   dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#E5E7EB'; });
   dropZone.addEventListener('drop', (e) => {
