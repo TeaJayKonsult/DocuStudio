@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PDF Filler — DocuStudio</title>
+  <title>PDF Editor & Tools — DocuStudio</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
@@ -70,7 +70,6 @@
       border-bottom: 1px solid #E5E7EB;
       flex-wrap: wrap;
       flex-shrink: 0;
-      display: none;
     }
     .tools button {
       padding: 6px 16px;
@@ -103,13 +102,13 @@
       max-width: 800px;
       width: 100%;
       margin: 0 auto;
-      display: none;
+      display: block;
       box-shadow: 0 4px 24px rgba(0,0,0,0.1);
       border-radius: 8px;
       background: white;
       cursor: crosshair;
       min-height: 300px;
-      border: 2px solid #E5E7EB;
+      border: 1px solid #E5E7EB;
     }
     #signatureCanvas {
       border: 2px solid #E5E7EB;
@@ -155,7 +154,7 @@
       color: #9CA3AF;
     }
     .placeholder .icon { font-size: 48px; margin-bottom: 12px; }
-    #debugInfo {
+    #log {
       background: #1a1a2e;
       color: #0f0;
       font-family: monospace;
@@ -169,6 +168,9 @@
       word-break: break-all;
       display: block;
     }
+    #log .error { color: #ff6b6b; }
+    #log .success { color: #51cf66; }
+    #log .info { color: #4dabf7; }
     @media (max-width: 600px) {
       .tools { padding: 8px 12px; gap: 4px; }
       .tools button { font-size: 12px; padding: 4px 12px; }
@@ -179,15 +181,15 @@
 <body>
 
 <div class="header">
-  <h1>📄 PDF Filler</h1>
+  <h1>📄 PDF Editor & Tools</h1>
   <button class="close-btn" onclick="closeTool()">✕</button>
 </div>
 
 <div class="upload-area">
   <div class="drop-zone" id="dropZone">
     <div class="icon">📤</div>
-    <h3>Upload a PDF</h3>
-    <p>Tap to choose or drag & drop</p>
+    <h3>Upload a PDF to fill & sign</h3>
+    <p>Tap the button below to choose a file</p>
     <input type="file" class="file-input" id="fileInput" accept=".pdf">
     <button class="upload-btn" id="uploadBtn">Choose PDF</button>
   </div>
@@ -198,15 +200,15 @@
   <button class="active" data-tool="text" onclick="setTool('text')">✏️ Text</button>
   <button data-tool="checkbox" onclick="setTool('checkbox')">☑️ Check</button>
   <button data-tool="signature" onclick="setTool('signature')">🖊️ Sign</button>
-  <button class="save-btn" onclick="savePDF()">💾 Save</button>
+  <button class="save-btn" onclick="saveFilledPDF()">💾 Save</button>
   <button class="clear-btn" onclick="clearAll()">🗑️ Clear</button>
 </div>
 
-<div class="canvas-wrapper" id="canvasWrapper">
+<div class="canvas-wrapper">
   <div id="placeholder">
     <div class="placeholder">
       <div class="icon">📄</div>
-      <p>Upload a PDF to start filling</p>
+      <p>Select a PDF to start filling</p>
     </div>
   </div>
   <canvas id="pdfCanvas"></canvas>
@@ -219,7 +221,7 @@
 
 <div class="status" id="fillStatus"></div>
 
-<div id="debugInfo"></div>
+<div id="log"></div>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -249,11 +251,12 @@
   // ====== STATE ======
   let pdfDoc = null;
   let pageNum = 1;
+  let numPages = 0;
   let annotations = [];
   let currentTool = 'text';
   let signatureImage = null;
-  let currentFile = null;
-  let currentData = null;
+  let currentFileData = null;
+  let currentFileName = 'filled.pdf';
 
   // ====== DOM REFS ======
   const fileInput = document.getElementById('fileInput');
@@ -265,26 +268,17 @@
   const ctx = canvas.getContext('2d');
   const sigCanvas = document.getElementById('signatureCanvas');
   const sigCtx = sigCanvas.getContext('2d');
-  const toolsBar = document.getElementById('toolsBar');
-  const debugInfo = document.getElementById('debugInfo');
+  const logEl = document.getElementById('log');
 
-  // ====== DEBUG LOG ======
-  function debugLog(msg) {
+  // ====== LOG FUNCTION ======
+  function log(msg, type) {
     const line = document.createElement('div');
     line.textContent = '> ' + msg;
-    debugInfo.appendChild(line);
-    debugInfo.scrollTop = debugInfo.scrollHeight;
+    if (type) line.className = type;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
     console.log(msg);
   }
-  debugLog('🔧 Debug ready');
-
-  // ====== ALERT TEST ======
-  function showAlert(msg) {
-    alert(msg);
-    debugLog('ALERT: ' + msg);
-  }
-
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
   // ====== SHOW STATUS ======
   function showStatus(el, type, msg) {
@@ -292,106 +286,83 @@
     el.className = 'status ' + type;
     el.textContent = msg;
     el.style.display = 'block';
-    debugLog(msg);
+    log(msg, type);
     setTimeout(() => { el.style.display = 'none'; }, 5000);
   }
 
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  log('🔧 PDF.js ready', 'info');
+
   // ====== UPLOAD ======
   async function handleFile(file) {
-    showAlert('1️⃣ File selected: ' + file.name);
-    debugLog('📄 Handling file: ' + file.name + ' (' + file.size + ' bytes)');
+    log('📄 File selected: ' + file.name + ' (' + file.size + ' bytes)', 'info');
 
     if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
       showStatus(uploadStatus, 'error', '⚠️ Please select a PDF file.');
-      showAlert('❌ Not a PDF file');
+      log('❌ Not a PDF file', 'error');
       return;
     }
+
     if (!currentUser) {
       showStatus(uploadStatus, 'error', '❌ Please sign in first.');
-      showAlert('❌ Not signed in');
+      log('❌ Not signed in', 'error');
       return;
     }
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      showAlert('2️⃣ File loaded, size: ' + arrayBuffer.byteLength);
-      debugLog('✅ File loaded, size: ' + arrayBuffer.byteLength);
-
-      currentFile = file;
-      currentData = arrayBuffer;
+      currentFileData = arrayBuffer;
+      currentFileName = file.name;
+      log('✅ File loaded: ' + arrayBuffer.byteLength + ' bytes', 'success');
 
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       pdfDoc = await loadingTask.promise;
+      numPages = pdfDoc.numPages;
       pageNum = 1;
-      showAlert('3️⃣ PDF loaded, pages: ' + pdfDoc.numPages);
-      debugLog('✅ PDF loaded, pages: ' + pdfDoc.numPages);
+      log('✅ PDF loaded: ' + numPages + ' pages', 'success');
 
-      // Render first page
-      const page = await pdfDoc.getPage(1);
-      const viewport = page.getViewport({ scale: 1 });
-      const containerWidth = Math.min(800, window.innerWidth - 48);
-      const scale = containerWidth / viewport.width;
-      const scaledViewport = page.getViewport({ scale: scale });
-
-      canvas.width = scaledViewport.width;
-      canvas.height = scaledViewport.height;
-      canvas.style.display = 'block';
+      renderPage(pageNum);
       document.getElementById('placeholder').style.display = 'none';
+      showStatus(uploadStatus, 'success', '✅ PDF loaded! Click to add content.');
+      showStatus(fillStatus, 'info', '🟢 Select a tool above, then click on the PDF.');
 
-      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-      showAlert('4️⃣ ✅ First page rendered successfully');
-      debugLog('✅ First page rendered successfully');
-
-      toolsBar.style.display = 'flex';
-      showStatus(uploadStatus, 'success', '✅ PDF loaded!');
-      showStatus(fillStatus, 'info', '🟢 Click on the PDF to add content.');
     } catch (err) {
-      showAlert('❌ Error: ' + err.message);
-      debugLog('❌ Error: ' + err.message);
-      showStatus(uploadStatus, 'error', '❌ Failed: ' + err.message);
-
-      // Show error on canvas
-      canvas.style.display = 'block';
-      canvas.width = 300;
-      canvas.height = 100;
-      ctx.fillStyle = '#f8d7da';
-      ctx.fillRect(0, 0, 300, 100);
-      ctx.fillStyle = '#721c24';
-      ctx.font = '16px Inter, sans-serif';
-      ctx.fillText('Error: ' + err.message, 10, 50);
+      log('❌ Error: ' + err.message, 'error');
+      showStatus(uploadStatus, 'error', '❌ ' + err.message);
     }
   }
 
-  // ====== EVENT LISTENERS ======
-  uploadBtn.addEventListener('click', function() {
-    showAlert('📁 Upload button clicked');
-    fileInput.click();
-  });
-
-  dropZone.addEventListener('click', function(e) {
-    if (e.target.classList.contains('upload-btn')) return;
-    showAlert('📁 Drop zone clicked');
-    fileInput.click();
-  });
-
-  fileInput.addEventListener('change', function(e) {
-    showAlert('📁 File input changed');
-    if (this.files && this.files.length > 0) {
-      handleFile(this.files[0]);
-    } else {
-      showAlert('⚠️ No file selected');
-    }
-    this.value = '';
-  });
-
-  // Drag and drop
-  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#6366F1'; });
-  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#E5E7EB'; });
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.style.borderColor = '#E5E7EB';
-    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-  });
+  function renderPage(page) {
+    if (!pdfDoc) return;
+    pdfDoc.getPage(page).then(function(pageObj) {
+      const viewport = pageObj.getViewport({ scale: 1 });
+      const containerWidth = Math.min(800, window.innerWidth - 48);
+      const scale = containerWidth / viewport.width;
+      const scaledViewport = pageObj.getViewport({ scale: scale });
+      canvas.width = scaledViewport.width;
+      canvas.height = scaledViewport.height;
+      pageObj.render({ canvasContext: ctx, viewport: scaledViewport }).then(() => {
+        // Draw annotations
+        const pageAnnots = annotations.filter(a => a.page === page);
+        pageAnnots.forEach(a => {
+          if (a.type === 'text') {
+            ctx.font = (a.size || 14) + 'px Inter, sans-serif';
+            ctx.fillStyle = a.color || '#000000';
+            ctx.fillText(a.text, a.x, a.y);
+          } else if (a.type === 'checkbox') {
+            ctx.font = '24px Inter, sans-serif';
+            ctx.fillStyle = '#000000';
+            ctx.fillText('✓', a.x - 10, a.y + 8);
+          } else if (a.type === 'signature' && a.imageData) {
+            const img = new Image();
+            img.onload = () => ctx.drawImage(img, a.x - 50, a.y - 20, 100, 40);
+            img.src = a.imageData;
+          }
+        });
+        log('🔄 Page ' + page + ' rendered with ' + pageAnnots.length + ' annotations', 'info');
+      });
+    });
+  }
 
   // ====== TOOL SELECTION ======
   window.setTool = function(tool) {
@@ -405,7 +376,7 @@
       sigCanvas.classList.remove('active');
       document.getElementById('signActions').style.display = 'none';
     }
-    debugLog('🖊️ Tool: ' + tool);
+    log('🖊️ Tool: ' + tool, 'info');
   };
 
   // ====== CLICK ON CANVAS ======
@@ -423,56 +394,24 @@
         annotations.push({ page: pageNum, x, y, type: 'text', text: text.trim(), color: '#000000', size: 14 });
         renderPage(pageNum);
         showStatus(fillStatus, 'success', '✅ Text added.');
-        debugLog('📝 Text at (' + x + ',' + y + ')');
+        log('📝 Text at (' + x + ',' + y + ')', 'success');
       }
     } else if (currentTool === 'checkbox') {
       annotations.push({ page: pageNum, x, y, type: 'checkbox' });
       renderPage(pageNum);
       showStatus(fillStatus, 'success', '✅ Checkmark added.');
-      debugLog('☑️ Check at (' + x + ',' + y + ')');
+      log('☑️ Check at (' + x + ',' + y + ')', 'success');
     } else if (currentTool === 'signature') {
       if (signatureImage) {
         annotations.push({ page: pageNum, x, y, type: 'signature', imageData: signatureImage });
         renderPage(pageNum);
         showStatus(fillStatus, 'success', '✅ Signature placed.');
-        debugLog('🖊️ Signature at (' + x + ',' + y + ')');
+        log('🖊️ Signature at (' + x + ',' + y + ')', 'success');
       } else {
         showStatus(fillStatus, 'error', '❌ Draw a signature first.');
       }
     }
   });
-
-  // ====== RENDER ======
-  function renderPage(page) {
-    if (!pdfDoc) return;
-    pdfDoc.getPage(page).then(function(pageObj) {
-      const viewport = pageObj.getViewport({ scale: 1 });
-      const containerWidth = Math.min(800, window.innerWidth - 48);
-      const scale = containerWidth / viewport.width;
-      const scaledViewport = pageObj.getViewport({ scale: scale });
-      canvas.width = scaledViewport.width;
-      canvas.height = scaledViewport.height;
-      pageObj.render({ canvasContext: ctx, viewport: scaledViewport }).then(() => {
-        const pageAnnots = annotations.filter(a => a.page === page);
-        pageAnnots.forEach(a => {
-          if (a.type === 'text') {
-            ctx.font = (a.size || 14) + 'px Inter, sans-serif';
-            ctx.fillStyle = a.color || '#000000';
-            ctx.fillText(a.text, a.x, a.y);
-          } else if (a.type === 'checkbox') {
-            ctx.font = '24px Inter, sans-serif';
-            ctx.fillStyle = '#000000';
-            ctx.fillText('✓', a.x - 10, a.y + 8);
-          } else if (a.type === 'signature' && a.imageData) {
-            const img = new Image();
-            img.onload = () => ctx.drawImage(img, a.x - 50, a.y - 20, 100, 40);
-            img.src = a.imageData;
-          }
-        });
-        debugLog('🔄 Page ' + page + ' rendered with ' + pageAnnots.length + ' annotations');
-      });
-    });
-  }
 
   // ====== SIGNATURE CANVAS ======
   (function setupSig() {
@@ -494,7 +433,7 @@
     }
     function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; }
     function draw(e) { e.preventDefault(); if (!drawing) return; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(lastX, lastY); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); lastX = p.x; lastY = p.y; }
-    function end(e) { e.preventDefault(); drawing = false; signatureImage = sigCanvas.toDataURL('image/png'); debugLog('🖊️ Signature drawn'); }
+    function end(e) { e.preventDefault(); drawing = false; signatureImage = sigCanvas.toDataURL('image/png'); log('🖊️ Signature drawn', 'info'); }
     sigCanvas.addEventListener('mousedown', start);
     sigCanvas.addEventListener('mousemove', draw);
     sigCanvas.addEventListener('mouseup', end);
@@ -509,20 +448,31 @@
     sigCtx.fillRect(0, 0, 400, 200);
     signatureImage = null;
     showStatus(fillStatus, 'info', '🧹 Signature cleared.');
-    debugLog('🧹 Signature cleared');
+    log('🧹 Signature cleared', 'info');
   };
+
   window.placeSignature = function() {
     showStatus(fillStatus, 'info', '🖊️ Click on the PDF to place your signature.');
   };
 
-  // ====== SAVE PDF ======
-  window.savePDF = async function() {
-    if (!currentData) { showStatus(fillStatus, 'error', 'Upload a PDF first.'); return; }
+  // ====== CLEAR ALL ======
+  window.clearAll = function() {
+    if (annotations.length === 0) return;
+    if (!confirm('Clear all annotations?')) return;
+    annotations = [];
+    renderPage(pageNum);
+    showStatus(fillStatus, 'success', '✅ All annotations cleared.');
+    log('🧹 All annotations cleared', 'info');
+  };
+
+  // ====== SAVE FILLED PDF ======
+  window.saveFilledPDF = async function() {
+    if (!currentFileData) { showStatus(fillStatus, 'error', 'Upload a PDF first.'); return; }
     if (annotations.length === 0) { showStatus(fillStatus, 'error', 'No annotations to save.'); return; }
 
     try {
       const pdfLib = PDFLib;
-      const pdfDocLib = await pdfLib.PDFDocument.load(currentData);
+      const pdfDocLib = await pdfLib.PDFDocument.load(currentFileData);
       const pages = pdfDocLib.getPages();
 
       const annotsByPage = {};
@@ -573,34 +523,55 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'filled.pdf';
+      link.download = 'filled_' + currentFileName;
       link.click();
       URL.revokeObjectURL(url);
 
       showStatus(fillStatus, 'success', '✅ Filled PDF downloaded!');
-      debugLog('✅ PDF saved');
+      log('✅ PDF saved successfully', 'success');
     } catch (err) {
-      debugLog('❌ Save error: ' + err.message);
+      log('❌ Save error: ' + err.message, 'error');
       showStatus(fillStatus, 'error', '❌ ' + err.message);
     }
   };
 
-  // ====== CLEAR ALL ======
-  window.clearAll = function() {
-    if (annotations.length === 0) return;
-    if (!confirm('Clear all annotations?')) return;
-    annotations = [];
-    renderPage(pageNum);
-    showStatus(fillStatus, 'success', '✅ All annotations cleared.');
-    debugLog('🧹 All cleared');
-  };
+  // ====== EVENT LISTENERS ======
+  uploadBtn.addEventListener('click', function() {
+    log('📁 Upload button clicked', 'info');
+    fileInput.click();
+  });
+
+  dropZone.addEventListener('click', function(e) {
+    if (e.target.classList.contains('upload-btn')) return;
+    log('📁 Drop zone clicked', 'info');
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function(e) {
+    log('📁 File input changed', 'info');
+    if (this.files && this.files.length > 0) {
+      handleFile(this.files[0]);
+    } else {
+      log('⚠️ No file selected', 'error');
+    }
+    this.value = '';
+  });
+
+  // Drag and drop
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#6366F1'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#E5E7EB'; });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#E5E7EB';
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
 
   // ====== CLOSE ======
   window.closeTool = function() {
     window.parent.postMessage({ type: 'closeViewer' }, '*');
   };
 
-  debugLog('✅ Ready');
+  log('✅ Ready. Upload a PDF to start.', 'success');
 </script>
 </body>
 </html>

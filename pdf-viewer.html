@@ -7,12 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- PDF.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  
   <style>
-    /* --- Variables --- */
     :root {
       --bg-dark: #0A0C10;
       --bg-card: #16181D;
@@ -29,8 +25,6 @@
       --radius-sm: 8px;
       --radius-md: 14px;
       --radius-lg: 20px;
-      
-      /* Light workspace colors */
       --workspace-bg: #F8F9FA;
       --workspace-card: #FFFFFF;
       --workspace-border: #E5E7EB;
@@ -45,15 +39,12 @@
       background: var(--workspace-bg);
       color: var(--workspace-text);
       line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
       height: 100vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
     }
-
-    /* --- Header (Dark) --- */
-    .pdf-header {
+    .viewer-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -62,143 +53,86 @@
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    .pdf-header h1 {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .pdf-header .close-btn {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 24px;
-      cursor: pointer;
-      padding: 4px 12px;
-      border-radius: var(--radius-sm);
+    .viewer-header h1 { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+    .viewer-header .close-btn {
+      background: none; border: none; color: var(--text-secondary); font-size: 24px;
+      cursor: pointer; padding: 4px 12px; border-radius: var(--radius-sm);
       transition: all 0.2s;
     }
-    .pdf-header .close-btn:hover {
-      color: var(--text-primary);
-      background: var(--bg-card-hover);
-    }
-
-    /* --- Upload Area (Light) --- */
+    .viewer-header .close-btn:hover { color: var(--text-primary); background: var(--bg-card-hover); }
     .upload-area {
       flex-shrink: 0;
-      padding: 24px;
-      border-bottom: 1px solid var(--workspace-border);
+      padding: 16px 24px;
       background: var(--workspace-bg);
+      border-bottom: 1px solid var(--workspace-border);
     }
     .drop-zone {
       border: 2px dashed var(--workspace-border);
-      border-radius: var(--radius-lg);
-      padding: 40px 20px;
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s;
       background: var(--workspace-card);
       box-shadow: var(--workspace-shadow);
     }
-    .drop-zone:hover {
-      border-color: var(--accent);
-      background: #F0F0FF;
-    }
-    .drop-zone.dragover {
-      border-color: var(--accent);
-      background: rgba(99,102,241,0.08);
-    }
-    .drop-zone .icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-    }
-    .drop-zone h3 {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--workspace-text);
-      margin-bottom: 4px;
-    }
-    .drop-zone p {
-      color: var(--workspace-text-secondary);
-      font-size: 14px;
-    }
-    .drop-zone .file-input {
-      display: none;
-    }
+    .drop-zone:hover { border-color: var(--accent); background: #F0F0FF; }
+    .drop-zone.dragover { border-color: var(--accent); background: rgba(99,102,241,0.08); }
+    .drop-zone .icon { font-size: 32px; margin-bottom: 8px; }
+    .drop-zone h3 { font-size: 16px; font-weight: 600; color: var(--workspace-text); }
+    .drop-zone p { font-size: 13px; color: var(--workspace-text-secondary); }
+    .drop-zone .file-input { display: none; }
     .drop-zone .upload-btn {
       display: inline-block;
-      margin-top: 16px;
-      padding: 10px 28px;
+      margin-top: 12px;
+      padding: 8px 24px;
       background: var(--accent);
       color: white;
       border: none;
-      border-radius: var(--radius-md);
-      font-size: 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       font-family: 'Inter', sans-serif;
       transition: all 0.2s;
     }
-    .drop-zone .upload-btn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-    }
-
-    /* --- PDF Viewer Area (Light) --- */
-    .pdf-viewer-container {
+    .drop-zone .upload-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .viewer-container {
       flex: 1;
       overflow: auto;
-      padding: 24px;
-      display: none;
-      position: relative;
+      padding: 20px 24px;
       background: var(--workspace-bg);
-    }
-    .pdf-viewer-container.active {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     #pdfCanvas {
       width: 100%;
       max-width: 900px;
       margin: 0 auto;
       display: block;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
       border-radius: var(--radius-sm);
       background: white;
     }
-
-    /* --- Toolbar (Light) --- */
-    .pdf-toolbar {
-      position: sticky;
-      top: 0;
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 900px;
       background: var(--workspace-card);
       border: 1px solid var(--workspace-border);
       border-radius: var(--radius-md);
       padding: 12px 16px;
-      display: none;
-      align-items: center;
-      justify-content: space-between;
       margin-bottom: 16px;
       flex-wrap: wrap;
       gap: 8px;
-      z-index: 10;
-      box-shadow: var(--workspace-shadow);
     }
-    .pdf-toolbar.active {
-      display: flex;
-    }
-    .pdf-toolbar .file-info {
-      font-size: 13px;
-      color: var(--workspace-text-secondary);
-      flex: 1;
-      min-width: 120px;
-    }
-    .pdf-toolbar .file-info strong {
-      color: var(--workspace-text);
-    }
-    .pdf-toolbar .actions {
-      display: flex;
-      gap: 8px;
-    }
-    .pdf-toolbar .actions button {
+    .toolbar .file-info { font-size: 13px; color: var(--workspace-text-secondary); }
+    .toolbar .file-info strong { color: var(--workspace-text); }
+    .toolbar .actions { display: flex; gap: 8px; }
+    .toolbar .actions button {
       padding: 6px 16px;
       border: none;
       border-radius: var(--radius-sm);
@@ -208,139 +142,69 @@
       font-family: 'Inter', sans-serif;
       transition: all 0.2s;
     }
-    .btn-download {
-      background: var(--accent);
-      color: white;
-    }
-    .btn-download:hover {
-      background: var(--accent-hover);
-    }
-    .btn-close-pdf {
-      background: var(--workspace-bg);
-      color: var(--workspace-text-secondary);
-      border: 1px solid var(--workspace-border);
-    }
-    .btn-close-pdf:hover {
-      background: var(--workspace-border);
-      color: var(--workspace-text);
-    }
-
-    /* --- Status Messages --- */
+    .btn-download { background: var(--accent); color: white; }
+    .btn-download:hover { background: var(--accent-hover); }
+    .btn-fill { background: var(--accent-teal); color: white; }
+    .btn-fill:hover { opacity: 0.8; }
+    .btn-close { background: var(--workspace-bg); color: var(--workspace-text-secondary); border: 1px solid var(--workspace-border); }
+    .btn-close:hover { background: var(--workspace-border); color: var(--workspace-text); }
+    .placeholder { text-align: center; padding: 60px 20px; color: var(--workspace-text-muted); }
+    .placeholder .icon { font-size: 48px; margin-bottom: 12px; }
     .status {
-      padding: 12px 20px;
-      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
       margin-top: 12px;
       display: none;
-      font-size: 14px;
+      font-size: 13px;
     }
-    .status.success {
-      display: block;
-      background: rgba(20,184,166,0.12);
-      border: 1px solid var(--accent-teal);
-      color: #0B7A6A;
-    }
-    .status.error {
-      display: block;
-      background: rgba(244,114,107,0.12);
-      border: 1px solid var(--accent-coral);
-      color: #C0392B;
-    }
-    .status.info {
-      display: block;
-      background: rgba(99,102,241,0.12);
-      border: 1px solid var(--accent);
-      color: #4A4DBF;
-    }
-
-    /* --- Spinner --- */
-    .spinner {
-      display: none;
-      text-align: center;
-      padding: 40px;
-      background: var(--workspace-bg);
-    }
-    .spinner.active {
-      display: block;
-    }
-    .spinner .loader {
-      width: 40px;
-      height: 40px;
-      border: 4px solid var(--workspace-border);
-      border-top: 4px solid var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 12px;
-    }
-    .spinner p {
-      color: var(--workspace-text-secondary);
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* --- Responsive --- */
+    .status.success { display: block; background: rgba(20,184,166,0.12); border: 1px solid var(--accent-teal); color: #0B7A6A; }
+    .status.error { display: block; background: rgba(244,114,107,0.12); border: 1px solid var(--accent-coral); color: #C0392B; }
+    .status.info { display: block; background: rgba(99,102,241,0.12); border: 1px solid var(--accent); color: #4A4DBF; }
     @media (max-width: 768px) {
-      .pdf-header h1 { font-size: 15px; }
-      .drop-zone { padding: 30px 16px; }
-      .drop-zone .icon { font-size: 36px; }
-      .pdf-toolbar { flex-direction: column; align-items: stretch; }
-      .pdf-toolbar .file-info { text-align: center; }
-      .pdf-toolbar .actions { justify-content: center; }
-      #pdfCanvas { max-width: 100%; }
+      .viewer-header h1 { font-size: 15px; }
+      .viewer-container { padding: 12px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar .file-info { text-align: center; }
+      .toolbar .actions { justify-content: center; }
     }
   </style>
 </head>
 <body>
 
-<!-- ====== HEADER (Dark) ====== -->
-<div class="pdf-header">
+<div class="viewer-header">
   <h1>📄 PDF Viewer</h1>
   <button class="close-btn" onclick="closeViewer()">✕</button>
 </div>
 
-<!-- ====== UPLOAD AREA (Light) ====== -->
 <div class="upload-area" id="uploadArea">
   <div class="drop-zone" id="dropZone">
     <div class="icon">📤</div>
     <h3>Upload a PDF</h3>
-    <p>Drag & drop your PDF here, or click to browse</p>
+    <p>Drag & drop or click to browse</p>
     <input type="file" class="file-input" id="fileInput" accept=".pdf">
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose PDF</button>
     <div class="status" id="uploadStatus"></div>
   </div>
 </div>
 
-<!-- ====== SPINNER ====== -->
-<div class="spinner" id="spinner">
-  <div class="loader"></div>
-  <p>Uploading & processing your PDF...</p>
-</div>
-
-<!-- ====== PDF TOOLBAR (Light) ====== -->
-<div class="pdf-toolbar" id="pdfToolbar">
-  <div class="file-info">
-    <strong id="pdfFileName">document.pdf</strong> · <span id="pdfPageInfo">1 / 1</span>
+<div class="viewer-container" id="viewerContainer" style="display:none;">
+  <div class="toolbar" id="toolbar">
+    <div class="file-info"><strong id="pdfFileName">document.pdf</strong> · <span id="pdfPageInfo">1 / 1</span></div>
+    <div class="actions">
+      <button class="btn-fill" id="fillBtn">✏️ Fill & Sign</button>
+      <button class="btn-download" onclick="downloadPDF()">⬇️ Download</button>
+      <button class="btn-close" onclick="closePDF()">Close</button>
+    </div>
   </div>
-  <div class="actions">
-    <button class="btn-download" onclick="downloadPDF()">⬇️ Download</button>
-    <button class="btn-close-pdf" onclick="closePDF()">Close</button>
-  </div>
-</div>
-
-<!-- ====== PDF VIEWER (Light) ====== -->
-<div class="pdf-viewer-container" id="pdfViewerContainer">
   <canvas id="pdfCanvas"></canvas>
 </div>
 
-<!-- ====== FIREBASE ====== -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
 <script>
-  // ====== FIREBASE CONFIG ======
   const firebaseConfig = {
     apiKey: "AIzaSyDdboIxnsvdJNVNN5GnRshWu7gctzBw6b0",
     authDomain: "docustudio-1e91f.firebaseapp.com",
@@ -350,24 +214,20 @@
     appId: "1:699941699006:web:863c41f668266de2284def",
     measurementId: "G-9CZ0RXMJCQ"
   };
-
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
   const storage = firebase.storage();
 
-  // ====== STATE ======
   let currentUser = null;
   let currentFile = null;
   let currentFileURL = null;
   let pdfDoc = null;
   let pageNum = 1;
   let numPages = 0;
-  let isProcessing = false;
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  // ====== CHECK AUTH ======
   auth.onAuthStateChanged((user) => {
     if (!user) {
       alert('Please sign in to use the PDF viewer.');
@@ -381,52 +241,41 @@
         const remaining = data.actionsRemaining || 0;
         const plan = data.plan || 'free';
         if (plan !== 'pro' && remaining <= 0) {
-          showStatus('error', '❌ You have no actions left. Please upgrade to Pro.');
           document.querySelector('.upload-btn').disabled = true;
-        } else {
-          document.querySelector('.upload-btn').disabled = false;
+          showStatus('uploadStatus', 'error', '❌ No actions left. Upgrade to Pro.');
         }
       }
     });
   });
 
-  // ====== HANDLE UPLOAD ======
+  function showStatus(elId, type, msg) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.className = 'status ' + type;
+    el.textContent = msg;
+    clearTimeout(el._timeout);
+    el._timeout = setTimeout(() => { el.className = 'status'; el.textContent = ''; }, 5000);
+  }
+
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
 
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFile(e.target.files[0]);
-    }
+    if (e.target.files.length > 0) handleFile(e.target.files[0]);
+    e.target.value = '';
   });
 
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-  });
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
-  });
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
   dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) {
-      handleFile(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
   });
 
-  // ====== HANDLE FILE ======
   async function handleFile(file) {
-    if (isProcessing) return;
-    if (!currentUser) {
-      showStatus('error', 'Please sign in first.');
-      return;
-    }
-
-    if (file.type !== 'application/pdf') {
-      showStatus('error', '⚠️ Please upload a valid PDF file.');
-      return;
-    }
+    if (!currentUser) { showStatus('uploadStatus', 'error', 'Please sign in first.'); return; }
+    if (file.type !== 'application/pdf') { showStatus('uploadStatus', 'error', '⚠️ Please upload a PDF.'); return; }
 
     const userDoc = await db.collection('users').doc(currentUser.uid).get();
     if (userDoc.exists) {
@@ -434,30 +283,33 @@
       const remaining = data.actionsRemaining || 0;
       const plan = data.plan || 'free';
       if (plan !== 'pro' && remaining <= 0) {
-        showStatus('error', '❌ No actions remaining. Upgrade to Pro for unlimited access.');
+        showStatus('uploadStatus', 'error', '❌ No actions remaining. Upgrade to Pro.');
         return;
       }
     }
 
-    isProcessing = true;
-    currentFile = file;
-    document.getElementById('spinner').classList.add('active');
-    document.getElementById('uploadStatus').className = 'status';
-
     try {
-      const storageRef = storage.ref(`documents/${currentUser.uid}/${Date.now()}_${file.name}`);
-      const snapshot = await storageRef.put(file);
-      const downloadURL = await snapshot.ref.getDownloadURL();
-      currentFileURL = downloadURL;
+      const arrayBuffer = await file.arrayBuffer();
+      currentFile = file;
+      currentFileURL = URL.createObjectURL(file);
 
-      if (userDoc.exists) {
-        const data = userDoc.data();
-        if (data.plan !== 'pro') {
-          const newRemaining = (data.actionsRemaining || 0) - 1;
-          await db.collection('users').doc(currentUser.uid).update({
-            actionsRemaining: newRemaining
-          });
-        }
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      pdfDoc = await loadingTask.promise;
+      numPages = pdfDoc.numPages;
+
+      document.getElementById('pdfFileName').textContent = file.name;
+      document.getElementById('pdfPageInfo').textContent = `1 / ${numPages}`;
+      document.getElementById('viewerContainer').style.display = 'block';
+      document.getElementById('uploadArea').style.display = 'none';
+
+      renderPage(1);
+
+      // Decrement action
+      if (userDoc.exists && userDoc.data().plan !== 'pro') {
+        const newRemaining = (userDoc.data().actionsRemaining || 0) - 1;
+        await db.collection('users').doc(currentUser.uid).update({
+          actionsRemaining: newRemaining
+        });
       }
 
       await db.collection('history').add({
@@ -467,135 +319,86 @@
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      displayPDF(downloadURL, file.name);
-      showStatus('success', `✅ ${file.name} uploaded and opened successfully!`);
       window.parent.postMessage({ type: 'actionUsed' }, '*');
+      showStatus('uploadStatus', 'success', '✅ PDF loaded!');
 
     } catch (err) {
-      console.error('Upload error:', err);
-      showStatus('error', '❌ Upload failed: ' + err.message);
-    } finally {
-      isProcessing = false;
-      document.getElementById('spinner').classList.remove('active');
+      showStatus('uploadStatus', 'error', '❌ ' + err.message);
     }
   }
 
-  // ====== DISPLAY PDF ======
-  function displayPDF(url, fileName) {
-    document.getElementById('pdfFileName').textContent = fileName;
-    document.getElementById('pdfToolbar').classList.add('active');
-    document.getElementById('pdfViewerContainer').classList.add('active');
-    document.getElementById('uploadArea').style.display = 'none';
-    document.getElementById('pdfToolbar').style.display = 'flex';
-
-    pdfjsLib.getDocument(url).promise.then((pdf) => {
-      pdfDoc = pdf;
-      numPages = pdf.numPages;
-      document.getElementById('pdfPageInfo').textContent = `1 / ${numPages}`;
-      renderPage(1);
-    }).catch((err) => {
-      console.error('PDF render error:', err);
-      showStatus('error', '❌ Could not render PDF. The file might be corrupted.');
-    });
-  }
-
-  // ====== RENDER PAGE ======
   function renderPage(num) {
     if (!pdfDoc) return;
     pdfDoc.getPage(num).then((page) => {
       const canvas = document.getElementById('pdfCanvas');
       const ctx = canvas.getContext('2d');
-      const containerWidth = Math.min(900, window.innerWidth - 48);
       const viewport = page.getViewport({ scale: 1 });
+      const containerWidth = Math.min(900, window.innerWidth - 48);
       const scale = containerWidth / viewport.width;
       const scaledViewport = page.getViewport({ scale: scale });
-      
       canvas.width = scaledViewport.width;
       canvas.height = scaledViewport.height;
-      
       page.render({ canvasContext: ctx, viewport: scaledViewport });
       document.getElementById('pdfPageInfo').textContent = `${num} / ${numPages}`;
     });
   }
 
-  // ====== KEYBOARD NAVIGATION ======
   document.addEventListener('keydown', (e) => {
     if (!pdfDoc) return;
-    if (e.key === 'ArrowLeft' && pageNum > 1) {
-      pageNum--;
-      renderPage(pageNum);
-    } else if (e.key === 'ArrowRight' && pageNum < numPages) {
-      pageNum++;
-      renderPage(pageNum);
-    }
+    if (e.key === 'ArrowLeft' && pageNum > 1) { pageNum--; renderPage(pageNum); }
+    else if (e.key === 'ArrowRight' && pageNum < numPages) { pageNum++; renderPage(pageNum); }
   });
 
-  // ====== DOWNLOAD ======
   function downloadPDF() {
-    if (!currentFileURL) return;
+    if (!currentFile) return;
     const link = document.createElement('a');
     link.href = currentFileURL;
-    link.download = currentFile ? currentFile.name : 'document.pdf';
+    link.download = currentFile.name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 
-  // ====== CLOSE PDF ======
   function closePDF() {
     pdfDoc = null;
     currentFile = null;
     currentFileURL = null;
-    document.getElementById('pdfToolbar').classList.remove('active');
-    document.getElementById('pdfViewerContainer').classList.remove('active');
+    document.getElementById('viewerContainer').style.display = 'none';
     document.getElementById('uploadArea').style.display = 'block';
-    document.getElementById('pdfToolbar').style.display = 'none';
-    document.getElementById('pdfFileName').textContent = '';
-    document.getElementById('pdfPageInfo').textContent = '';
-    const canvas = document.getElementById('pdfCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = 0;
-    canvas.height = 0;
     document.getElementById('uploadStatus').className = 'status';
     document.getElementById('uploadStatus').textContent = '';
     document.getElementById('fileInput').value = '';
   }
 
-  // ====== CLOSE VIEWER ======
   function closeViewer() {
     window.parent.postMessage({ type: 'closeViewer' }, '*');
   }
 
-  // ====== SHOW STATUS ======
-  function showStatus(type, msg) {
-    const el = document.getElementById('uploadStatus');
-    el.className = 'status ' + type;
-    el.textContent = msg;
-    setTimeout(() => {
-      if (!el.textContent.includes('❌') && !el.textContent.includes('✅')) {
-        el.className = 'status';
-        el.textContent = '';
-      }
-    }, 5000);
-  }
+  // Fill & Sign Button → Pass the file to the filler page
+  document.getElementById('fillBtn').addEventListener('click', function() {
+    if (!currentFile) return;
+    // Store the file in a global variable or pass via URL
+    // Since we can't pass files directly via URL, we'll store in localStorage
+    try {
+      // For large files, we need to be careful with localStorage limits
+      // Instead, we'll open the filler page and pass the file name
+      // The filler will read the file from the same storage
+      localStorage.setItem('pdfToFill', JSON.stringify({
+        name: currentFile.name,
+        size: currentFile.size,
+        type: currentFile.type,
+        // We'll use the file URL or read the file again
+      }));
+      // Open filler page
+      window.location.href = '/pdf-filler.html';
+    } catch (err) {
+      alert('Error opening filler: ' + err.message);
+    }
+  });
 
-  // ====== WINDOW RESIZE ======
   window.addEventListener('resize', () => {
-    if (pdfDoc) {
-      renderPage(pageNum);
-    }
+    if (pdfDoc) renderPage(pageNum);
   });
-
-  // ====== MESSAGE FROM PARENT ======
-  window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'closeViewer') {
-      closePDF();
-      closeViewer();
-    }
-  });
-
-  console.log('📄 PDF Viewer loaded successfully!');
 </script>
 </body>
 </html>
