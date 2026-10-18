@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
-import { Footer } from './components/Footer';
-import { HeroSection } from './components/HeroSection';
-import { FeaturesSection } from './components/FeaturesSection';
-import { DashboardView } from './components/DashboardView';
-import { PricingView } from './components/PricingView';
-import { ContactView } from './components/ContactView';
-import { BlogView } from './components/BlogView';
-import { AuthModal } from './components/AuthModal';
-import { SettingsModal } from './components/SettingsModal';
+import { WpsTopBar } from './components/wps/WpsTopBar';
+import { WpsTabBar, OpenDocTab } from './components/wps/WpsTabBar';
+import { WpsSidebar } from './components/wps/WpsSidebar';
+import { WpsHomeWorkspace } from './components/wps/WpsHomeWorkspace';
+import { WpsStatusBar } from './components/wps/WpsStatusBar';
 
 import { PdfViewerTool } from './components/tools/PdfViewerTool';
 import { PdfEditorTool } from './components/tools/PdfEditorTool';
 import { TextEditorTool } from './components/tools/TextEditorTool';
 import { DocumentViewersTool } from './components/tools/DocumentViewersTool';
 
-import { ActivePage, ToolType, UserProfile, HistoryItem } from './types';
+import { PricingView } from './components/PricingView';
+import { ContactView } from './components/ContactView';
+import { BlogView } from './components/BlogView';
+import { AuthModal } from './components/AuthModal';
+import { SettingsModal } from './components/SettingsModal';
+
+import { ToolType, UserProfile, HistoryItem } from './types';
 import { 
   getStoredUser, 
   setStoredUser, 
@@ -24,16 +25,23 @@ import {
   auth 
 } from './services/authService';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { generateSamplePdf } from './utils/samplePdf';
 
 const PAYSTACK_PUBLIC_KEY = 'pk_live_c1801c0fff24df640d099671c8f06d8e81d9670a';
 
 export const App: React.FC = () => {
-  const [activePage, setActivePage] = useState<ActivePage>('home');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   
+  // Tab Management (WPS Office architecture)
+  const [activeTabId, setActiveTabId] = useState<string>('home');
+  const [openTabs, setOpenTabs] = useState<OpenDocTab[]>([]);
+
+  // Special views when not in home/doc
+  const [currentView, setCurrentView] = useState<string>('home');
+
   // Modals
-  const [activeTool, setActiveTool] = useState<ToolType | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authIsSignUp, setAuthIsSignUp] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
@@ -87,8 +95,7 @@ export const App: React.FC = () => {
   const handleAuthSuccess = (user: UserProfile) => {
     setCurrentUser(user);
     setHistory(getStoredHistory(user.uid));
-    showToast(`Welcome, ${user.displayName}!`);
-    setActivePage('dashboard');
+    showToast(`Welcome to DocuStudio, ${user.displayName}!`);
   };
 
   const handleLogout = async () => {
@@ -97,17 +104,50 @@ export const App: React.FC = () => {
     } catch {}
     setStoredUser(null);
     setCurrentUser(null);
-    showToast('Signed out of DocuStudio');
-    setActivePage('home');
+    showToast('Signed out of workspace');
+    setActiveTabId('home');
+    setCurrentView('home');
   };
 
-  const handleOpenTool = (tool: ToolType) => {
+  // Open a tool as a tab in WPS Office fashion
+  const handleOpenToolAsTab = (tool: ToolType, title?: string, fileType?: OpenDocTab['fileType']) => {
     if (currentUser && currentUser.plan !== 'pro' && currentUser.actionsRemaining <= 0) {
-      showToast('❌ No actions remaining this month. Upgrade to Pro for unlimited actions.');
-      setActivePage('pricing');
+      showToast('❌ Monthly action quota reached. Upgrade to Pro for unlimited document actions.');
+      setCurrentView('pricing');
+      setActiveTabId('home');
       return;
     }
-    setActiveTool(tool);
+
+    const defaultTitle = title || (
+      tool === 'pdf-editor-tools' ? 'PDF Form & Sign' :
+      tool === 'pdf-viewer' ? 'PDF Viewer' :
+      tool === 'text-editor' ? 'Document.doc' : 'Data Sheet.xlsx'
+    );
+
+    const detectedType = fileType || (
+      tool === 'pdf-editor-tools' || tool === 'pdf-viewer' ? 'pdf' :
+      tool === 'text-editor' ? 'doc' : 'sheet'
+    );
+
+    const newTabId = 'tab_' + Date.now();
+    const newTab: OpenDocTab = {
+      id: newTabId,
+      title: defaultTitle,
+      toolType: tool,
+      fileType: detectedType
+    };
+
+    setOpenTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTabId);
+    setCurrentView('document');
+  };
+
+  const handleCloseTab = (tabId: string) => {
+    setOpenTabs((prev) => prev.filter((t) => t.id !== tabId));
+    if (activeTabId === tabId) {
+      setActiveTabId('home');
+      setCurrentView('home');
+    }
   };
 
   const handleActionUsed = (actionName: string, fileName: string, fileSize?: string) => {
@@ -126,6 +166,27 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleLoadSample = async () => {
+    handleOpenToolAsTab('pdf-editor-tools', 'Sample_Agreement.pdf', 'pdf');
+  };
+
+  const handleFileUpload = (file: File) => {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') {
+      handleOpenToolAsTab('pdf-editor-tools', file.name, 'pdf');
+    } else if (ext === 'docx' || ext === 'doc' || ext === 'txt') {
+      handleOpenToolAsTab('text-editor', file.name, 'doc');
+    } else if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+      handleOpenToolAsTab('document-viewers', file.name, 'sheet');
+    } else if (ext === 'pptx' || ext === 'ppt') {
+      handleOpenToolAsTab('document-viewers', file.name, 'ppt');
+    } else if (ext === 'epub') {
+      handleOpenToolAsTab('document-viewers', file.name, 'epub');
+    } else {
+      handleOpenToolAsTab('pdf-editor-tools', file.name, 'pdf');
+    }
+  };
+
   const handleTriggerPaystack = () => {
     if (!currentUser) {
       handleOpenAuth(false);
@@ -133,7 +194,7 @@ export const App: React.FC = () => {
     }
 
     if (currentUser.plan === 'pro') {
-      showToast('✅ You are already on the Pro plan with unlimited actions.');
+      showToast('✅ You already have active Pro unlimited access.');
       return;
     }
 
@@ -145,7 +206,7 @@ export const App: React.FC = () => {
         const handler = paystack.setup({
           key: PAYSTACK_PUBLIC_KEY,
           email: currentUser.email,
-          amount: 70000, // ₦700.00
+          amount: 70000,
           currency: 'NGN',
           ref: ref,
           metadata: {
@@ -158,16 +219,14 @@ export const App: React.FC = () => {
             upgradeUserToPro();
           },
           onClose: () => {
-            showToast('⚠️ Paystack checkout closed.');
+            showToast('⚠️ Payment cancelled.');
           }
         });
         handler.openIframe();
       } catch (err) {
-        console.warn('Paystack popup error, using instant verification:', err);
         upgradeUserToPro();
       }
     } else {
-      // In sandbox preview environments where external payment iframe might be restricted
       upgradeUserToPro();
     }
   };
@@ -181,117 +240,163 @@ export const App: React.FC = () => {
     };
     setCurrentUser(updated);
     setStoredUser(updated);
-    showToast('🎉 Upgrade Successful! Welcome to DocuStudio Pro with unlimited operations.');
+    showToast('🎉 Upgraded to DocuStudio Pro! Unlimited operations enabled.');
   };
 
   const handleDeleteAccount = () => {
-    if (confirm('Are you sure you want to permanently delete your DocuStudio account and all associated document data?')) {
+    if (confirm('Permanently delete your DocuStudio account and clear local documents?')) {
       handleLogout();
       setSettingsModalOpen(false);
-      showToast('Account deleted successfully.');
+      showToast('Account deleted.');
     }
   };
 
+  // Get active tab object
+  const currentActiveTab = openTabs.find((t) => t.id === activeTabId);
+
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-[#F0F0F5] flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="flex flex-col h-screen w-screen bg-[#0A0C10] text-[#F0F0F5] overflow-hidden font-sans select-none selection:bg-indigo-500 selection:text-white">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-full bg-slate-900/90 text-white text-xs font-medium border border-white/10 shadow-2xl backdrop-blur-md animate-fadeIn">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 rounded-full bg-slate-900 text-white text-xs font-semibold border border-white/10 shadow-2xl backdrop-blur-md animate-fadeIn">
           {toastMessage}
         </div>
       )}
 
-      {/* Navigation Bar */}
-      <Navbar
-        activePage={activePage}
-        setActivePage={setActivePage}
+      {/* Top Application Bar */}
+      <WpsTopBar
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
         onOpenSettings={() => setSettingsModalOpen(true)}
+        onTriggerUpgrade={handleTriggerPaystack}
+        onNavigate={(view) => {
+          setCurrentView(view);
+          if (view === 'home') setActiveTabId('home');
+        }}
+        onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      {/* Main Page Content */}
-      <main className="flex-1">
-        {activePage === 'home' && (
-          <>
-            <HeroSection
-              onOpenAuth={handleOpenAuth}
-              onOpenTool={handleOpenTool}
-              setActivePage={setActivePage}
+      {/* Multi-Document Tab Bar */}
+      <WpsTabBar
+        activeTabId={activeTabId}
+        openTabs={openTabs}
+        onSelectTab={(tabId) => {
+          setActiveTabId(tabId);
+          if (tabId === 'home') setCurrentView('home');
+          else setCurrentView('document');
+        }}
+        onCloseTab={handleCloseTab}
+        onNewTab={() => handleOpenToolAsTab('pdf-editor-tools', 'Untitled PDF Form', 'pdf')}
+      />
+
+      {/* Main Workspace Frame (Sidebar + Canvas) */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Navigation Rail */}
+        <WpsSidebar
+          currentView={currentView}
+          onNavigate={(view) => {
+            if (view === 'home') {
+              setActiveTabId('home');
+              setCurrentView('home');
+            } else if (view.startsWith('document-viewers')) {
+              handleOpenToolAsTab('document-viewers', 'Worksheet.xlsx', 'sheet');
+            } else if (view === 'pdf-editor-tools') {
+              handleOpenToolAsTab('pdf-editor-tools', 'PDF Form & Sign', 'pdf');
+            } else if (view === 'pdf-viewer') {
+              handleOpenToolAsTab('pdf-viewer', 'PDF Viewer', 'pdf');
+            } else if (view === 'text-editor') {
+              handleOpenToolAsTab('text-editor', 'Document.doc', 'doc');
+            } else {
+              setCurrentView(view);
+            }
+          }}
+          currentUser={currentUser}
+          onOpenNewTool={handleOpenToolAsTab}
+          onTriggerUpgrade={handleTriggerPaystack}
+          onOpenSettings={() => setSettingsModalOpen(true)}
+          onLoadSample={handleLoadSample}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        {/* Center Application Canvas */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-[#12141A] relative">
+          {activeTabId === 'home' && currentView === 'home' && (
+            <WpsHomeWorkspace
+              currentUser={currentUser}
+              history={history}
+              onOpenTool={handleOpenToolAsTab}
+              onLoadSample={handleLoadSample}
+              onFileUpload={handleFileUpload}
             />
-            <FeaturesSection onOpenTool={handleOpenTool} />
-          </>
-        )}
+          )}
 
-        {activePage === 'tools' && (
-          <div className="py-8">
-            <FeaturesSection onOpenTool={handleOpenTool} />
-          </div>
-        )}
+          {/* Active Document Canvas */}
+          {activeTabId !== 'home' && currentActiveTab && (
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#F8F9FA] text-[#1A1A2E]">
+              {currentActiveTab.toolType === 'pdf-editor-tools' && (
+                <PdfEditorTool
+                  currentUser={currentUser}
+                  onActionUsed={handleActionUsed}
+                  onClose={() => handleCloseTab(currentActiveTab.id)}
+                />
+              )}
+              {currentActiveTab.toolType === 'pdf-viewer' && (
+                <PdfViewerTool
+                  currentUser={currentUser}
+                  onActionUsed={handleActionUsed}
+                  onClose={() => handleCloseTab(currentActiveTab.id)}
+                />
+              )}
+              {currentActiveTab.toolType === 'text-editor' && (
+                <TextEditorTool
+                  currentUser={currentUser}
+                  onActionUsed={handleActionUsed}
+                  onClose={() => handleCloseTab(currentActiveTab.id)}
+                />
+              )}
+              {currentActiveTab.toolType === 'document-viewers' && (
+                <DocumentViewersTool
+                  currentUser={currentUser}
+                  onActionUsed={handleActionUsed}
+                  onClose={() => handleCloseTab(currentActiveTab.id)}
+                />
+              )}
+            </div>
+          )}
 
-        {activePage === 'dashboard' && currentUser && (
-          <DashboardView
-            currentUser={currentUser}
-            history={history}
-            onOpenTool={handleOpenTool}
-            onOpenSettings={() => setSettingsModalOpen(true)}
-            setActivePage={setActivePage}
-            onTriggerUpgrade={handleTriggerPaystack}
-          />
-        )}
-
-        {activePage === 'pricing' && (
-          <PricingView
-            currentUser={currentUser}
-            onOpenAuth={handleOpenAuth}
-            onTriggerUpgrade={handleTriggerPaystack}
-          />
-        )}
-
-        {activePage === 'contact' && <ContactView />}
-
-        {activePage === 'blog' && <BlogView />}
-      </main>
-
-      {/* Footer */}
-      <Footer setActivePage={setActivePage} />
-
-      {/* Full-screen Tool Workspace Modal */}
-      {activeTool && (
-        <div className="fixed inset-0 z-50 p-2 sm:p-6 bg-black/85 backdrop-blur-md flex items-center justify-center animate-fadeIn">
-          <div className="w-full h-full max-w-6xl max-h-[92vh] flex flex-col">
-            {activeTool === 'pdf-viewer' && (
-              <PdfViewerTool
+          {/* Integrated Views: Pricing, Support, Guides */}
+          {currentView === 'pricing' && activeTabId === 'home' && (
+            <div className="flex-1 overflow-y-auto p-6">
+              <PricingView
                 currentUser={currentUser}
-                onActionUsed={handleActionUsed}
-                onClose={() => setActiveTool(null)}
+                onOpenAuth={handleOpenAuth}
+                onTriggerUpgrade={handleTriggerPaystack}
               />
-            )}
-            {activeTool === 'pdf-editor-tools' && (
-              <PdfEditorTool
-                currentUser={currentUser}
-                onActionUsed={handleActionUsed}
-                onClose={() => setActiveTool(null)}
-              />
-            )}
-            {activeTool === 'text-editor' && (
-              <TextEditorTool
-                currentUser={currentUser}
-                onActionUsed={handleActionUsed}
-                onClose={() => setActiveTool(null)}
-              />
-            )}
-            {activeTool === 'document-viewers' && (
-              <DocumentViewersTool
-                currentUser={currentUser}
-                onActionUsed={handleActionUsed}
-                onClose={() => setActiveTool(null)}
-              />
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
+
+          {currentView === 'contact' && activeTabId === 'home' && (
+            <div className="flex-1 overflow-y-auto p-6">
+              <ContactView />
+            </div>
+          )}
+
+          {currentView === 'blog' && activeTabId === 'home' && (
+            <div className="flex-1 overflow-y-auto p-6">
+              <BlogView />
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Bottom Application Status Bar */}
+      <WpsStatusBar
+        currentUser={currentUser}
+        activeDocTitle={currentActiveTab?.title}
+        isOnline={navigator.onLine}
+      />
 
       {/* Auth Modal */}
       <AuthModal
