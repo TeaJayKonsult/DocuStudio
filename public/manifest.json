@@ -1,0 +1,60 @@
+{
+  "id": "/",
+  "name": "DocuStudio — PDF Suite & Document Workspace",
+  "short_name": "DocuStudio",
+  "description": "The all-in-one document & PDF suite. Create, edit, fill, sign, merge, convert, and protect your documents with pro-grade tools.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0A0C10",
+  "theme_color": "#0A0C10",
+  "orientation": "any",
+  "categories": [
+    "productivity",
+    "business",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "PDF Fill & Sign",
+      "short_name": "PDF Editor",
+      "description": "Fill out PDF forms and stamp digital signatures",
+      "url": "/?tool=pdf-editor-tools",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Text Document Editor",
+      "short_name": "Text Editor",
+      "description": "Draft rich documents and export to PDF",
+      "url": "/?tool=text-editor",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Document Viewers",
+      "short_name": "Viewers",
+      "description": "View Excel, PPT, EPUB and Word files",
+      "url": "/?tool=document-viewers",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
