@@ -1,0 +1,8 @@
+{
+  "name": "DocuStudio",
+  "description": "DocuStudio — The all-in-one document & PDF suite. Create, edit, fill, sign, merge, convert, and protect your documents with pro-grade tools.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "permissions": []
+}

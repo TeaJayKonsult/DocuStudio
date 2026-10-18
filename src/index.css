@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --bg-dark: #0A0C10;
+  --bg-hero: #0F1115;
+  --bg-card: #16181D;
+  --bg-card-hover: #1E2028;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.1);
+  --text-primary: #F0F0F5;
+  --text-secondary: #9CA3AF;
+  --text-muted: #5A5E6A;
+  --accent: #6366F1;
+  --accent-hover: #8184F8;
+  --accent-glow: rgba(99, 102, 241, 0.15);
+  --accent-teal: #14B8A6;
+  --accent-coral: #F4726B;
+  --accent-amber: #FBBF24;
+  --white: #FFFFFF;
+  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 80px rgba(99, 102, 241, 0.1);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --workspace-bg: #F8F9FA;
+  --workspace-card: #FFFFFF;
+  --workspace-border: #E5E7EB;
+  --workspace-text: #1A1A2E;
+  --workspace-text-secondary: #4B5563;
+  --workspace-text-muted: #9CA3AF;
+  --workspace-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Keyframe animations */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.05); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
