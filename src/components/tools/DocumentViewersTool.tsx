@@ -133,19 +133,26 @@ export const DocumentViewersTool: React.FC<DocumentViewersToolProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#F8F9FA] text-[#1A1A2E] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-      {/* Top Header */}
-      <div className="bg-[#0A0C10] px-6 py-4 flex items-center justify-between border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white">
+      {/* Top Header with Safe Area */}
+      <div className="bg-[#0A0C10] px-3.5 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between border-b border-white/10 pt-[max(env(safe-area-inset-top),10px)]">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={onClose}
+            className="p-1.5 -ml-1 text-slate-300 hover:text-white rounded-lg active:bg-white/10 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+            title="Back to Files"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white shrink-0">
             <FileSpreadsheet className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-white font-semibold text-sm">DocuStudio Multi-Format Document Viewers</h2>
-            <p className="text-[11px] text-slate-400">Excel spreadsheets, PPT slide decks, EPUB e-books, DOCX</p>
+            <h2 className="text-white font-semibold text-xs sm:text-sm">Document Viewers</h2>
+            <p className="text-[10px] text-slate-400 hidden sm:block">Excel spreadsheets, PPT slide decks, EPUB e-books, DOCX</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <input
             type="file"
             ref={fileInputRef}
@@ -155,16 +162,10 @@ export const DocumentViewersTool: React.FC<DocumentViewersToolProps> = ({
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm"
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm min-h-[38px]"
           >
             <UploadCloud className="w-3.5 h-3.5" />
             <span>Upload File</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
           </button>
         </div>
       </div>

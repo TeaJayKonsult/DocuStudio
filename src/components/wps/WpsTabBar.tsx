@@ -43,7 +43,7 @@ export const WpsTabBar: React.FC<WpsTabBarProps> = ({
   };
 
   return (
-    <div className="flex items-center bg-[#0D0F14] border-b border-white/10 px-2 pt-1.5 overflow-x-auto select-none scrollbar-none h-11 shrink-0">
+    <div className="hidden md:flex items-center bg-[#0D0F14] border-b border-white/10 px-2 pt-1.5 overflow-x-auto select-none scrollbar-none h-11 shrink-0">
       {/* Home Tab */}
       <button
         onClick={() => onSelectTab('home')}

@@ -1,13 +1,15 @@
 {
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 10
-    }
-  },
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/$1"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!api/|manifest.json|sw.js|icon-.*|assets/).*)",
+      "destination": "/index.html"
     }
   ]
 }

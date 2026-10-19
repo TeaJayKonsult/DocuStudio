@@ -57,7 +57,7 @@ export const WpsSidebar: React.FC<WpsSidebarProps> = ({
   ];
 
   return (
-    <aside className={`bg-[#0F1117] border-r border-white/10 flex flex-col justify-between transition-all duration-200 select-none shrink-0 ${
+    <aside className={`hidden md:flex bg-[#0F1117] border-r border-white/10 flex-col justify-between transition-all duration-200 select-none shrink-0 ${
       collapsed ? 'w-16' : 'w-60'
     }`}>
       {/* Top: + New Button */}

@@ -1,20 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  UploadCloud, 
+  ChevronLeft, 
+  ChevronRight, 
+  ArrowLeft,
   Type, 
   CheckSquare, 
   PenTool, 
   Save, 
   Trash2, 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  AlertCircle,
+  Undo2, 
+  Sparkles, 
+  Download,
+  UploadCloud,
+  X,
   CheckCircle2,
-  Undo2,
-  FileCheck,
-  Sparkles,
-  Download
+  AlertCircle
 } from 'lucide-react';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { UserProfile, PDFAnnotation } from '../../types';
@@ -32,29 +32,28 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
   onClose
 }) => {
   const [fileData, setFileData] = useState<ArrayBuffer | null>(null);
-  const [fileName, setFileName] = useState<string>('document.pdf');
+  const [fileName, setFileName] = useState<string>('Document.pdf');
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [annotations, setAnnotations] = useState<PDFAnnotation[]>([]);
   const [activeTool, setActiveTool] = useState<'text' | 'checkbox' | 'signature'>('text');
   
   // Text options
-  const [inputText, setInputText] = useState<string>('Adeola Johnson - Verified');
+  const [inputText, setInputText] = useState<string>('Verified & Approved');
   const [fontSize, setFontSize] = useState<number>(14);
-  const [fontColor, setFontColor] = useState<string>('#1E1B4B');
 
   // Checkmark options
-  const [checkType, setCheckType] = useState<'check' | 'cross' | 'approved'>('check');
+  const [checkType, setCheckType] = useState<'check' | 'cross'>('check');
 
-  // Signature state
+  // Signature state & Bottom Sheet
+  const [sigSheetOpen, setSigSheetOpen] = useState<boolean>(false);
   const [sigMode, setSigMode] = useState<'draw' | 'type'>('draw');
-  const [typedSigText, setTypedSigText] = useState<string>('TeaJay Konsult');
+  const [typedSigText, setTypedSigText] = useState<string>(currentUser?.displayName || 'TeaJay Konsult');
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
 
-  // Status & logs
-  const [logs, setLogs] = useState<string[]>(['DocuStudio PDF Engine ready.']);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
+  // Status message
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -62,36 +61,22 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pdfDocRef = useRef<any>(null);
 
-  const addLog = (msg: string) => {
-    setLogs((prev) => [...prev.slice(-30), `[${new Date().toLocaleTimeString()}] ${msg}`]);
-  };
-
-  const showStatus = (type: 'info' | 'success' | 'error', text: string) => {
-    setStatusMessage({ type, text });
-    addLog(text);
-    setTimeout(() => {
-      setStatusMessage(null);
-    }, 4500);
+  const showToast = (type: 'success' | 'error' | 'info', text: string) => {
+    setToast({ type, text });
+    setTimeout(() => setToast(null), 3500);
   };
 
   // Safe PDF.js initialization
   const loadPdfDocument = async (buffer: ArrayBuffer, docName: string) => {
     setLoading(true);
-    addLog(`Loading document: ${docName} (${(buffer.byteLength / 1024).toFixed(1)} KB)`);
-
     try {
       const pdfjs = (window as any).pdfjsLib;
-      if (!pdfjs) {
-        throw new Error('PDF rendering library is initializing. Please wait a moment.');
-      }
+      if (!pdfjs) throw new Error('PDF viewer initializing. Please retry in a second.');
 
       try {
         pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      } catch (e) {
-        console.warn('Worker configuration notice:', e);
-      }
+      } catch (e) {}
 
-      // CRITICAL: Must wrap buffer in Uint8Array for PDF.js web worker compatibility
       const typedArray = new Uint8Array(buffer);
       const loadingTask = pdfjs.getDocument({
         data: typedArray,
@@ -106,11 +91,10 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
       setNumPages(doc.numPages);
       setCurrentPage(1);
       setAnnotations([]);
-
-      showStatus('success', `PDF loaded successfully (${doc.numPages} ${doc.numPages === 1 ? 'page' : 'pages'}). Click on the document to edit.`);
+      showToast('success', `Opened ${docName} (${doc.numPages} ${doc.numPages === 1 ? 'page' : 'pages'})`);
     } catch (err: any) {
-      console.error('PDF Load Error:', err);
-      showStatus('error', err.message || 'Error parsing PDF document.');
+      console.error(err);
+      showToast('error', err.message || 'Error opening PDF.');
     } finally {
       setLoading(false);
     }
@@ -118,23 +102,20 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
 
   const handleFileUpload = async (uploadedFile: File) => {
     if (!uploadedFile.name.toLowerCase().endsWith('.pdf')) {
-      showStatus('error', 'Please choose a valid PDF file (.pdf)');
+      showToast('error', 'Please choose a PDF file');
       return;
     }
     const buffer = await uploadedFile.arrayBuffer();
     await loadPdfDocument(buffer, uploadedFile.name);
   };
 
-  // Quick load of sample agreement
   const handleLoadSample = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      addLog('Generating clean sample agreement PDF...');
       const sample = await generateSamplePdf();
       await loadPdfDocument(sample.buffer, sample.name);
-      showStatus('success', 'Sample Agreement loaded! Select Text, Checkmark, or Signature to edit.');
     } catch (err: any) {
-      showStatus('error', 'Failed to generate sample PDF: ' + err.message);
+      showToast('error', 'Sample generation error: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -146,9 +127,10 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
 
     try {
       const page = await pdfDocRef.current.getPage(pageNumber);
-      const containerWidth = Math.min(850, window.innerWidth - 64);
+      // Mobile-optimized container width: adapts to screen size
+      const maxAllowedWidth = Math.min(800, window.innerWidth - 32);
       const unscaledViewport = page.getViewport({ scale: 1 });
-      const scale = containerWidth / unscaledViewport.width;
+      const scale = maxAllowedWidth / unscaledViewport.width;
       const viewport = page.getViewport({ scale });
 
       const canvas = canvasRef.current;
@@ -160,15 +142,15 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Draw annotations for this page
+      // Draw annotations for current page
       const pageAnnots = annotations.filter((a) => a.page === pageNumber);
       pageAnnots.forEach((a) => {
         if (a.type === 'text' && a.text) {
-          ctx.font = `600 ${a.size || 14}px 'Inter', sans-serif`;
+          ctx.font = `bold ${a.size || 14}px sans-serif`;
           ctx.fillStyle = a.color || '#1E1B4B';
           ctx.fillText(a.text, a.x, a.y);
         } else if (a.type === 'checkbox') {
-          // Draw check badge
+          // Rounded checkmark badge
           ctx.fillStyle = '#EEF2FF';
           ctx.strokeStyle = '#4F46E5';
           ctx.lineWidth = 1.5;
@@ -191,7 +173,7 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
         }
       });
     } catch (err) {
-      console.error('Render error:', err);
+      console.error('Page render error:', err);
     }
   };
 
@@ -201,21 +183,20 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
     }
   }, [currentPage, annotations]);
 
-  // Handle clicking on PDF canvas to stamp text/checkbox/signature
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Unified click & touch event handler for accurate coordinate mapping
+  const stampAtPoint = (clientX: number, clientY: number) => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    
-    // Scale client click coordinates to actual internal canvas pixel resolution
+
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
 
     if (activeTool === 'text') {
       if (!inputText.trim()) {
-        showStatus('info', 'Enter text in the toolbar above first.');
+        showToast('info', 'Type your text in the bottom bar first');
         return;
       }
       const newAnnot: PDFAnnotation = {
@@ -226,15 +207,12 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
         y,
         text: inputText,
         size: fontSize,
-        color: fontColor
+        color: '#1E1B4B'
       };
       setAnnotations((prev) => [...prev, newAnnot]);
-      addLog(`Stamped text: "${inputText}" at (${Math.round(x)}, ${Math.round(y)})`);
+      showToast('success', 'Text placed');
     } else if (activeTool === 'checkbox') {
-      let markSymbol = '✓';
-      if (checkType === 'cross') markSymbol = '✗';
-      if (checkType === 'approved') markSymbol = 'OK';
-
+      const markSymbol = checkType === 'cross' ? '✗' : '✓';
       const newAnnot: PDFAnnotation = {
         id: 'ann_' + Date.now(),
         page: currentPage,
@@ -244,11 +222,10 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
         text: markSymbol
       };
       setAnnotations((prev) => [...prev, newAnnot]);
-      addLog(`Stamped checkmark [${markSymbol}] at (${Math.round(x)}, ${Math.round(y)})`);
+      showToast('success', `Stamped ${markSymbol}`);
     } else if (activeTool === 'signature') {
       let sigImage = signatureDataUrl;
 
-      // If in typed signature mode, generate image from text
       if (sigMode === 'type' && typedSigText.trim()) {
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = 320;
@@ -263,7 +240,8 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
       }
 
       if (!sigImage) {
-        showStatus('info', 'Please sign or type your name in the signature box on the right first.');
+        setSigSheetOpen(true);
+        showToast('info', 'Draw or type your signature below first');
         return;
       }
 
@@ -276,11 +254,22 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
         imageData: sigImage
       };
       setAnnotations((prev) => [...prev, newAnnot]);
-      addLog(`Placed signature stamp at (${Math.round(x)}, ${Math.round(y)})`);
+      showToast('success', 'Signature placed');
     }
   };
 
-  // Drawing pad handlers
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    stampAtPoint(e.clientX, e.clientY);
+  };
+
+  const handleCanvasTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.changedTouches && e.changedTouches[0]) {
+      const touch = e.changedTouches[0];
+      stampAtPoint(touch.clientX, touch.clientY);
+    }
+  };
+
+  // Drawing Pad Handlers for Signature Sheet
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
     const canvas = sigCanvasRef.current;
@@ -335,24 +324,20 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
 
   const handleUndo = () => {
     if (annotations.length === 0) return;
-    const popped = annotations[annotations.length - 1];
     setAnnotations((prev) => prev.slice(0, -1));
-    addLog(`Undid last annotation (${popped.type})`);
+    showToast('info', 'Undid last stamp');
   };
 
   // Save modified PDF using pdf-lib
   const handleSavePDF = async () => {
     if (!fileData) {
-      showStatus('error', 'No PDF loaded to save.');
+      showToast('error', 'No document to save');
       return;
     }
 
     setLoading(true);
-    addLog('Compiling PDF modifications with pdf-lib...');
-
     try {
       const pdfDoc = await PDFDocument.load(fileData);
-      const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
       const pages = pdfDoc.getPages();
 
@@ -377,7 +362,6 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
               color: rgb(0.12, 0.1, 0.3)
             });
           } else if (annot.type === 'checkbox') {
-            // Draw clean box
             page.drawRectangle({
               x: pdfX - 10,
               y: pdfY - 4,
@@ -388,7 +372,6 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
               color: rgb(0.95, 0.96, 1.0)
             });
 
-            // Draw checkmark lines
             if (annot.text === '✗') {
               page.drawLine({
                 start: { x: pdfX - 7, y: pdfY + 11 },
@@ -403,7 +386,6 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
                 color: rgb(0.85, 0.2, 0.2)
               });
             } else {
-              // Classic checkmark ✓
               page.drawLine({
                 start: { x: pdfX - 7, y: pdfY + 3 },
                 end: { x: pdfX - 2, y: pdfY - 2 },
@@ -430,7 +412,7 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
       }
 
       const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -441,367 +423,361 @@ export const PdfEditorTool: React.FC<PdfEditorToolProps> = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showStatus('success', `Exported successfully: ${downloadName}`);
+      showToast('success', `Saved: ${downloadName}`);
       onActionUsed('PDF Fill & Sign', downloadName, (blob.size / 1024).toFixed(1) + ' KB');
     } catch (err: any) {
       console.error(err);
-      showStatus('error', 'Error compiling PDF: ' + err.message);
+      showToast('error', 'Error generating PDF: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F8F9FA] text-[#1A1A2E] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-      {/* Top Header */}
-      <div className="bg-[#0A0C10] px-6 py-3.5 flex items-center justify-between border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-            <PenTool className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-white font-semibold text-sm">DocuStudio PDF Editor &amp; Form Suite</h2>
-            <p className="text-[11px] text-slate-400">Fill forms, stamp checkmarks, place signatures, compile to PDF</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {!fileData && (
-            <button
-              onClick={handleLoadSample}
-              className="px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Load Sample Agreement</span>
-            </button>
-          )}
-
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Tools Ribbon */}
-      <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
-        {/* Tool selector buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveTool('text')}
-            className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
-              activeTool === 'text' 
-                ? 'bg-indigo-600 text-white shadow-sm' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Type className="w-3.5 h-3.5" />
-            <span>Text Tool</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTool('checkbox')}
-            className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
-              activeTool === 'checkbox' 
-                ? 'bg-indigo-600 text-white shadow-sm' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>Checkmark Tool</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTool('signature')}
-            className={`px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
-              activeTool === 'signature' 
-                ? 'bg-indigo-600 text-white shadow-sm' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <PenTool className="w-3.5 h-3.5" />
-            <span>Signature Tool</span>
-          </button>
-        </div>
-
-        {/* Dynamic Context Controls */}
-        {activeTool === 'text' && (
-          <div className="flex items-center gap-2 flex-1 max-w-md">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Type text to stamp on click..."
-              className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-indigo-500"
-            />
-            <select
-              value={fontSize}
-              onChange={(e) => setFontSize(Number(e.target.value))}
-              className="px-2 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-xs text-gray-800"
-            >
-              <option value="12">12 pt</option>
-              <option value="14">14 pt</option>
-              <option value="16">16 pt</option>
-              <option value="20">20 pt</option>
-            </select>
-          </div>
-        )}
-
-        {activeTool === 'checkbox' && (
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 font-semibold">Stamp Style:</span>
-            <button
-              onClick={() => setCheckType('check')}
-              className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
-                checkType === 'check' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              ✓ Checkmark
-            </button>
-            <button
-              onClick={() => setCheckType('cross')}
-              className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
-                checkType === 'cross' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              ✗ Cross
-            </button>
-          </div>
-        )}
-
-        {/* Global Save / Clear / Page Navigation */}
-        <div className="flex items-center gap-2">
-          {numPages > 1 && (
-            <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg mr-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage <= 1}
-                className="p-1 disabled:opacity-30 cursor-pointer text-gray-700"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <span className="text-[11px] font-medium text-gray-700">
-                {currentPage}/{numPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
-                disabled={currentPage >= numPages}
-                className="p-1 disabled:opacity-30 cursor-pointer text-gray-700"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          <button
-            onClick={handleUndo}
-            disabled={annotations.length === 0}
-            title="Undo last stamp"
-            className="p-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-30 cursor-pointer"
-          >
-            <Undo2 className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              if (confirm('Clear all placed annotations?')) {
-                setAnnotations([]);
-                addLog('Cleared all annotations');
-              }
-            }}
-            disabled={annotations.length === 0}
-            className="px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-30 flex items-center gap-1 font-medium cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-            <span>Clear ({annotations.length})</span>
-          </button>
-
-          <button
-            onClick={handleSavePDF}
-            disabled={!fileData || loading}
-            className="px-4 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer transition-all"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{loading ? 'Processing...' : 'Save & Export PDF'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Notifications bar */}
-      {statusMessage && (
-        <div className={`px-6 py-2 text-xs font-medium flex items-center gap-2 transition-all ${
-          statusMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-b border-emerald-200' :
-          statusMessage.type === 'error' ? 'bg-rose-50 text-rose-700 border-b border-rose-200' :
-          'bg-indigo-50 text-indigo-700 border-b border-indigo-200'
+    <div className="flex flex-col h-full w-full bg-[#181A20] text-slate-100 select-none overflow-hidden relative">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full text-xs font-semibold shadow-xl border flex items-center gap-1.5 animate-fadeIn ${
+          toast.type === 'success' ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/40' :
+          toast.type === 'error' ? 'bg-rose-950/90 text-rose-300 border-rose-500/40' :
+          'bg-indigo-950/90 text-indigo-300 border-indigo-500/40'
         }`}>
-          {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          <span>{statusMessage.text}</span>
+          {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          <span>{toast.text}</span>
         </div>
       )}
 
-      {/* Main Workspace: Left is PDF Canvas, Right is Signature Panel */}
-      <div className="flex-1 overflow-auto p-6 flex flex-col md:flex-row items-start justify-center gap-6 bg-slate-100/70">
-        {!fileData ? (
-          <div className="my-auto max-w-lg w-full flex flex-col gap-4">
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                  handleFileUpload(e.dataTransfer.files[0]);
-                }
-              }}
-              className="bg-white border-2 border-dashed border-gray-300 hover:border-indigo-500 rounded-2xl p-10 text-center cursor-pointer transition-all hover:shadow-xl hover:bg-indigo-50/20 group"
+      {/* Top Mobile App Header */}
+      <header className="bg-[#0D0F14] border-b border-white/10 px-3 flex items-center justify-between shrink-0 z-30 pt-[max(env(safe-area-inset-top),0px)] min-h-[52px]">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="p-2 -ml-1 text-slate-300 hover:text-white rounded-lg active:bg-white/10 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+            title="Back to Files"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex flex-col">
+            <span className="font-semibold text-xs text-white truncate max-w-[150px] sm:max-w-xs">
+              {fileName}
+            </span>
+            <span className="text-[10px] text-slate-400">
+              {numPages > 0 ? `Page ${currentPage} of ${numPages}` : 'PDF Form & Sign'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {annotations.length > 0 && (
+            <button
+              onClick={handleUndo}
+              className="p-2 text-slate-400 hover:text-white rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+              title="Undo last stamp"
             >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    handleFileUpload(e.target.files[0]);
-                  }
-                }}
-                accept=".pdf"
-                className="hidden"
-              />
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <UploadCloud className="w-8 h-8" />
-              </div>
-              <h3 className="font-serif font-bold text-lg text-gray-800 mb-1">
-                Upload PDF to Fill &amp; Sign
-              </h3>
-              <p className="text-xs text-gray-500 mb-6">
-                Drag and drop your file here, or click to choose from your computer.
-              </p>
-              <button
-                type="button"
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer"
-              >
-                Choose PDF Document
-              </button>
+              <Undo2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {fileData && (
+            <button
+              onClick={handleSavePDF}
+              disabled={loading}
+              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 cursor-pointer transition-all min-h-[40px]"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{loading ? 'Saving...' : 'Save & Export'}</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Main Document View Canvas */}
+      <div className="flex-1 overflow-auto bg-[#242731] flex flex-col items-center justify-start p-3 sm:p-6 relative">
+        {!fileData ? (
+          <div className="my-auto max-w-sm w-full p-6 bg-[#161820] border border-white/10 rounded-2xl text-center space-y-4 shadow-xl">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <UploadCloud className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-white">Select a PDF Document</h3>
+              <p className="text-xs text-slate-400 mt-1">Open contracts, forms, or tax documents to fill &amp; sign</p>
             </div>
 
-            {/* Quick Sample Button */}
-            <div className="bg-white p-4 rounded-xl border border-gray-200 text-center space-y-2">
-              <p className="text-xs text-gray-500">Don't have a PDF ready to upload?</p>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  handleFileUpload(e.target.files[0]);
+                }
+              }}
+              accept=".pdf"
+              className="hidden"
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/25 cursor-pointer min-h-[44px]"
+            >
+              Choose PDF File
+            </button>
+
+            <div className="pt-2 border-t border-white/5">
               <button
-                type="button"
                 onClick={handleLoadSample}
-                className="w-full py-2.5 px-4 bg-gray-100 hover:bg-indigo-50 hover:text-indigo-600 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-indigo-300 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
               >
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                <span>Load Sample Agreement Form (1-Click Test)</span>
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                <span>Load Sample Agreement Form</span>
               </button>
             </div>
           </div>
         ) : (
-          <>
-            {/* PDF Canvas View */}
-            <div className="flex-1 flex flex-col items-center">
-              <div className="mb-2 text-xs text-gray-600 font-medium bg-white px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">
-                👉 Click anywhere on the document below to place your <strong className="text-indigo-600 capitalize">{activeTool}</strong>
-              </div>
-              <div className="bg-white p-2 rounded-xl shadow-xl border border-gray-200">
-                <canvas 
-                  ref={canvasRef} 
-                  onClick={handleCanvasClick}
-                  className="rounded cursor-crosshair max-w-full"
-                />
-              </div>
+          <div className="w-full flex flex-col items-center pb-20">
+            {/* Guide hint */}
+            <div className="mb-2 text-[11px] text-indigo-200 bg-indigo-950/70 border border-indigo-500/30 px-3.5 py-1 rounded-full shadow-sm">
+              Tap anywhere on the document to place <strong className="text-white capitalize">{activeTool}</strong>
             </div>
 
-            {/* Signature Draw Sidebar if signature tool is active */}
-            {activeTool === 'signature' && (
-              <div className="w-full md:w-80 bg-white border border-gray-200 rounded-xl p-4 shadow-lg shrink-0 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-sm text-gray-800 flex items-center gap-1.5">
-                    <PenTool className="w-4 h-4 text-indigo-600" />
-                    Signature Studio
-                  </h4>
-                </div>
-
-                <div className="flex bg-gray-100 p-1 rounded-lg text-xs">
-                  <button
-                    onClick={() => setSigMode('draw')}
-                    className={`flex-1 py-1 rounded font-semibold cursor-pointer ${
-                      sigMode === 'draw' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600'
-                    }`}
-                  >
-                    Draw Signature
-                  </button>
-                  <button
-                    onClick={() => setSigMode('type')}
-                    className={`flex-1 py-1 rounded font-semibold cursor-pointer ${
-                      sigMode === 'type' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600'
-                    }`}
-                  >
-                    Type Name
-                  </button>
-                </div>
-
-                {sigMode === 'draw' ? (
-                  <>
-                    <p className="text-[11px] text-gray-500">
-                      Sign with mouse or touch screen below:
-                    </p>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 overflow-hidden">
-                      <canvas
-                        ref={sigCanvasRef}
-                        width={300}
-                        height={120}
-                        onMouseDown={startDrawing}
-                        onMouseMove={draw}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchMove={draw}
-                        onTouchEnd={stopDrawing}
-                        className="w-full h-28 bg-white cursor-crosshair touch-none"
-                      />
-                    </div>
-                    <button
-                      onClick={clearSignaturePad}
-                      className="w-full py-1.5 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-medium cursor-pointer"
-                    >
-                      Clear Pad
-                    </button>
-                  </>
-                ) : (
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-semibold text-gray-600">Your Full Name:</label>
-                    <input
-                      type="text"
-                      value={typedSigText}
-                      onChange={(e) => setTypedSigText(e.target.value)}
-                      placeholder="e.g. Adeola Johnson"
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-xs"
-                    />
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center font-serif italic text-xl text-indigo-950">
-                      {typedSigText || 'Your Signature'}
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-[11px] text-indigo-800">
-                  ✅ Signature ready! Click on the document where you want it placed.
-                </div>
-              </div>
-            )}
-          </>
+            {/* Canvas */}
+            <div className="bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-300">
+              <canvas
+                ref={canvasRef}
+                onClick={handleCanvasClick}
+                onTouchEnd={handleCanvasTouch}
+                className="cursor-crosshair max-w-full block touch-manipulation"
+              />
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Bottom Console Log */}
-      <div className="bg-[#0A0C10] border-t border-white/10 px-6 py-2 max-h-20 overflow-y-auto font-mono text-[11px] text-emerald-400">
-        {logs.map((log, index) => (
-          <div key={index} className="truncate">
-            &gt; {log}
+      {/* Bottom Mobile Tool Ribbon (Natural Thumb Zone) */}
+      {fileData && (
+        <div className="bg-[#0D0F14] border-t border-white/10 px-3 py-2 shrink-0 z-30 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+          {/* Active Context Row */}
+          {activeTool === 'text' && (
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Text to stamp on tap..."
+                className="flex-1 px-3 py-1.5 bg-[#161820] border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[38px]"
+              />
+              <select
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                className="px-2 py-1.5 bg-[#161820] border border-white/10 rounded-lg text-xs text-white min-h-[38px]"
+              >
+                <option value="12">12pt</option>
+                <option value="14">14pt</option>
+                <option value="18">18pt</option>
+                <option value="22">22pt</option>
+              </select>
+            </div>
+          )}
+
+          {activeTool === 'checkbox' && (
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10 text-xs">
+              <span className="text-slate-400 font-medium">Stamp Style:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCheckType('check')}
+                  className={`px-3 py-1 rounded-lg font-bold min-h-[36px] cursor-pointer ${
+                    checkType === 'check' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-400'
+                  }`}
+                >
+                  ✓ Checkmark
+                </button>
+                <button
+                  onClick={() => setCheckType('cross')}
+                  className={`px-3 py-1 rounded-lg font-bold min-h-[36px] cursor-pointer ${
+                    checkType === 'cross' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-400'
+                  }`}
+                >
+                  ✗ Cross
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Primary Tool Buttons Bar */}
+          <div className="grid grid-cols-5 gap-1 items-center">
+            <button
+              onClick={() => setActiveTool('text')}
+              className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition-all cursor-pointer min-h-[48px] ${
+                activeTool === 'text' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Type className="w-4 h-4 mb-0.5" />
+              <span className="text-[10px] font-semibold">Text</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTool('checkbox')}
+              className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition-all cursor-pointer min-h-[48px] ${
+                activeTool === 'checkbox' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <CheckSquare className="w-4 h-4 mb-0.5" />
+              <span className="text-[10px] font-semibold">Check</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTool('signature');
+                if (!signatureDataUrl) setSigSheetOpen(true);
+              }}
+              className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition-all cursor-pointer min-h-[48px] ${
+                activeTool === 'signature' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <PenTool className="w-4 h-4 mb-0.5" />
+              <span className="text-[10px] font-semibold">Sign</span>
+            </button>
+
+            {/* Page Jump */}
+            <div className="flex flex-col items-center justify-center py-1 text-slate-400 min-h-[48px]">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage <= 1}
+                  className="p-1 disabled:opacity-20 cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-[11px] font-bold text-white font-mono">
+                  {currentPage}/{numPages || 1}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
+                  disabled={currentPage >= numPages}
+                  className="p-1 disabled:opacity-20 cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <span className="text-[9px] uppercase tracking-wider text-slate-500">Page</span>
+            </div>
+
+            <button
+              onClick={() => {
+                if (confirm('Clear all stamps?')) setAnnotations([]);
+              }}
+              disabled={annotations.length === 0}
+              className="flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-400 hover:text-rose-400 disabled:opacity-30 cursor-pointer min-h-[48px]"
+            >
+              <Trash2 className="w-4 h-4 mb-0.5" />
+              <span className="text-[10px] font-semibold">Clear</span>
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Signature Bottom Sheet (WPS / Android Mobile Style) */}
+      {sigSheetOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full bg-[#161820] border-t border-white/10 rounded-t-3xl p-5 shadow-2xl space-y-4 max-w-lg mx-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <PenTool className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-bold text-sm text-white">Create Digital Signature</h3>
+              </div>
+              <button
+                onClick={() => setSigSheetOpen(false)}
+                className="p-1 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode Toggle */}
+            <div className="flex bg-[#0D0F14] p-1 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setSigMode('draw')}
+                className={`flex-1 py-2 rounded-lg transition-all cursor-pointer min-h-[40px] ${
+                  sigMode === 'draw' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'
+                }`}
+              >
+                Draw with Finger
+              </button>
+              <button
+                onClick={() => setSigMode('type')}
+                className={`flex-1 py-2 rounded-lg transition-all cursor-pointer min-h-[40px] ${
+                  sigMode === 'type' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'
+                }`}
+              >
+                Type Cursive Name
+              </button>
+            </div>
+
+            {sigMode === 'draw' ? (
+              <div className="space-y-3">
+                <div className="border-2 border-dashed border-white/15 rounded-2xl bg-white overflow-hidden shadow-inner">
+                  <canvas
+                    ref={sigCanvasRef}
+                    width={340}
+                    height={140}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                    className="w-full h-32 bg-white cursor-crosshair touch-none"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={clearSignaturePad}
+                    className="flex-1 py-2.5 rounded-xl border border-white/10 text-slate-300 font-semibold text-xs hover:bg-white/5 cursor-pointer min-h-[44px]"
+                  >
+                    Clear Drawing
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!signatureDataUrl) {
+                        showToast('info', 'Please sign in the box first');
+                        return;
+                      }
+                      setSigSheetOpen(false);
+                      showToast('info', 'Signature ready! Tap document to place');
+                    }}
+                    disabled={!signatureDataUrl}
+                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-semibold text-xs shadow-md cursor-pointer min-h-[44px]"
+                  >
+                    Use Signature
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={typedSigText}
+                  onChange={(e) => setTypedSigText(e.target.value)}
+                  placeholder="Enter your name"
+                  className="w-full px-4 py-2.5 bg-[#0D0F14] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+                <div className="p-4 bg-white rounded-xl text-center font-serif italic text-2xl text-slate-900 shadow-inner">
+                  {typedSigText || 'Your Signature'}
+                </div>
+                <button
+                  onClick={() => {
+                    setSigSheetOpen(false);
+                    showToast('info', 'Signature ready! Tap document to place');
+                  }}
+                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md cursor-pointer min-h-[44px]"
+                >
+                  Use Cursive Signature
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

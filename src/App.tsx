@@ -4,6 +4,8 @@ import { WpsTabBar, OpenDocTab } from './components/wps/WpsTabBar';
 import { WpsSidebar } from './components/wps/WpsSidebar';
 import { WpsHomeWorkspace } from './components/wps/WpsHomeWorkspace';
 import { WpsStatusBar } from './components/wps/WpsStatusBar';
+import { WpsMobileBottomBar } from './components/wps/WpsMobileBottomBar';
+import { WpsMobileBottomSheet } from './components/wps/WpsMobileBottomSheet';
 
 import { PdfViewerTool } from './components/tools/PdfViewerTool';
 import { PdfEditorTool } from './components/tools/PdfEditorTool';
@@ -40,6 +42,9 @@ export const App: React.FC = () => {
 
   // Special views when not in home/doc
   const [currentView, setCurrentView] = useState<string>('home');
+
+  // Mobile Bottom Sheet state for FAB
+  const [bottomSheetOpen, setBottomSheetOpen] = useState<boolean>(false);
 
   // Modals
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
@@ -253,31 +258,36 @@ export const App: React.FC = () => {
 
   // Get active tab object
   const currentActiveTab = openTabs.find((t) => t.id === activeTabId);
+  const isDocumentOpen = activeTabId !== 'home' && currentActiveTab;
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#0A0C10] text-[#F0F0F5] overflow-hidden font-sans select-none selection:bg-indigo-500 selection:text-white">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 rounded-full bg-slate-900 text-white text-xs font-semibold border border-white/10 shadow-2xl backdrop-blur-md animate-fadeIn">
+        <div className="fixed bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 rounded-full bg-slate-900/95 text-white text-xs font-semibold border border-white/10 shadow-2xl backdrop-blur-md animate-fadeIn">
           {toastMessage}
         </div>
       )}
 
-      {/* Top Application Bar */}
-      <WpsTopBar
-        currentUser={currentUser}
-        onOpenAuth={handleOpenAuth}
-        onLogout={handleLogout}
-        onOpenSettings={() => setSettingsModalOpen(true)}
-        onTriggerUpgrade={handleTriggerPaystack}
-        onNavigate={(view) => {
-          setCurrentView(view);
-          if (view === 'home') setActiveTabId('home');
-        }}
-        onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+      {/* Top Application Bar: 
+          On Desktop: always visible.
+          On Mobile: visible on home/views, hidden when a document is in full-screen reader mode! */}
+      <div className={isDocumentOpen ? 'hidden md:block' : 'block'}>
+        <WpsTopBar
+          currentUser={currentUser}
+          onOpenAuth={handleOpenAuth}
+          onLogout={handleLogout}
+          onOpenSettings={() => setSettingsModalOpen(true)}
+          onTriggerUpgrade={handleTriggerPaystack}
+          onNavigate={(view) => {
+            setCurrentView(view);
+            if (view === 'home') setActiveTabId('home');
+          }}
+          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+      </div>
 
-      {/* Multi-Document Tab Bar */}
+      {/* Multi-Document Tab Bar: Desktop only (phones don't use desktop tabs) */}
       <WpsTabBar
         activeTabId={activeTabId}
         openTabs={openTabs}
@@ -287,38 +297,40 @@ export const App: React.FC = () => {
           else setCurrentView('document');
         }}
         onCloseTab={handleCloseTab}
-        onNewTab={() => handleOpenToolAsTab('pdf-editor-tools', 'Untitled PDF Form', 'pdf')}
+        onNewTab={() => setBottomSheetOpen(true)}
       />
 
       {/* Main Workspace Frame (Sidebar + Canvas) */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Navigation Rail */}
-        <WpsSidebar
-          currentView={currentView}
-          onNavigate={(view) => {
-            if (view === 'home') {
-              setActiveTabId('home');
-              setCurrentView('home');
-            } else if (view.startsWith('document-viewers')) {
-              handleOpenToolAsTab('document-viewers', 'Worksheet.xlsx', 'sheet');
-            } else if (view === 'pdf-editor-tools') {
-              handleOpenToolAsTab('pdf-editor-tools', 'PDF Form & Sign', 'pdf');
-            } else if (view === 'pdf-viewer') {
-              handleOpenToolAsTab('pdf-viewer', 'PDF Viewer', 'pdf');
-            } else if (view === 'text-editor') {
-              handleOpenToolAsTab('text-editor', 'Document.doc', 'doc');
-            } else {
-              setCurrentView(view);
-            }
-          }}
-          currentUser={currentUser}
-          onOpenNewTool={handleOpenToolAsTab}
-          onTriggerUpgrade={handleTriggerPaystack}
-          onOpenSettings={() => setSettingsModalOpen(true)}
-          onLoadSample={handleLoadSample}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Navigation Rail (Desktop only) */}
+        {!isDocumentOpen && (
+          <WpsSidebar
+            currentView={currentView}
+            onNavigate={(view) => {
+              if (view === 'home') {
+                setActiveTabId('home');
+                setCurrentView('home');
+              } else if (view.startsWith('document-viewers')) {
+                handleOpenToolAsTab('document-viewers', 'Worksheet.xlsx', 'sheet');
+              } else if (view === 'pdf-editor-tools') {
+                handleOpenToolAsTab('pdf-editor-tools', 'PDF Form & Sign', 'pdf');
+              } else if (view === 'pdf-viewer') {
+                handleOpenToolAsTab('pdf-viewer', 'PDF Viewer', 'pdf');
+              } else if (view === 'text-editor') {
+                handleOpenToolAsTab('text-editor', 'Document.doc', 'doc');
+              } else {
+                setCurrentView(view);
+              }
+            }}
+            currentUser={currentUser}
+            onOpenNewTool={handleOpenToolAsTab}
+            onTriggerUpgrade={handleTriggerPaystack}
+            onOpenSettings={() => setSettingsModalOpen(true)}
+            onLoadSample={handleLoadSample}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        )}
 
         {/* Center Application Canvas */}
         <main className="flex-1 flex flex-col overflow-hidden bg-[#12141A] relative">
@@ -332,9 +344,9 @@ export const App: React.FC = () => {
             />
           )}
 
-          {/* Active Document Canvas */}
-          {activeTabId !== 'home' && currentActiveTab && (
-            <div className="flex-1 flex flex-col overflow-hidden bg-[#F8F9FA] text-[#1A1A2E]">
+          {/* Active Document Canvas (Full-Screen Immersive Reader) */}
+          {isDocumentOpen && currentActiveTab && (
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#F8F9FA] text-[#1A1A2E] z-10">
               {currentActiveTab.toolType === 'pdf-editor-tools' && (
                 <PdfEditorTool
                   currentUser={currentUser}
@@ -368,7 +380,7 @@ export const App: React.FC = () => {
 
           {/* Integrated Views: Pricing, Support, Guides */}
           {currentView === 'pricing' && activeTabId === 'home' && (
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 sm:pb-6">
               <PricingView
                 currentUser={currentUser}
                 onOpenAuth={handleOpenAuth}
@@ -378,20 +390,51 @@ export const App: React.FC = () => {
           )}
 
           {currentView === 'contact' && activeTabId === 'home' && (
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 sm:pb-6">
               <ContactView />
             </div>
           )}
 
           {currentView === 'blog' && activeTabId === 'home' && (
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 sm:pb-6">
               <BlogView />
             </div>
           )}
         </main>
       </div>
 
-      {/* Bottom Application Status Bar */}
+      {/* Mobile Android Bottom Navigation Bar (Shown on Home / Files / Views) */}
+      {!isDocumentOpen && (
+        <WpsMobileBottomBar
+          currentView={currentView}
+          onNavigate={(view) => {
+            if (view === 'home') {
+              setActiveTabId('home');
+              setCurrentView('home');
+            } else if (view === 'pdf-editor-tools') {
+              handleOpenToolAsTab('pdf-editor-tools', 'PDF Form & Sign', 'pdf');
+            } else if (view === 'document-viewers') {
+              handleOpenToolAsTab('document-viewers', 'Worksheet.xlsx', 'sheet');
+            } else {
+              setCurrentView(view);
+              setActiveTabId('home');
+            }
+          }}
+          onNewAction={() => setBottomSheetOpen(true)}
+          currentUser={currentUser}
+        />
+      )}
+
+      {/* Native Slide-Up Bottom Sheet for Mobile FAB */}
+      <WpsMobileBottomSheet
+        isOpen={bottomSheetOpen}
+        onClose={() => setBottomSheetOpen(false)}
+        onSelectAction={handleOpenToolAsTab}
+        onUploadFile={handleFileUpload}
+        onLoadSample={handleLoadSample}
+      />
+
+      {/* Bottom Desktop Application Status Bar */}
       <WpsStatusBar
         currentUser={currentUser}
         activeDocTitle={currentActiveTab?.title}

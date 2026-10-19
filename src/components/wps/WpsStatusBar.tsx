@@ -16,7 +16,7 @@ export const WpsStatusBar: React.FC<WpsStatusBarProps> = ({
   const isPro = currentUser?.plan === 'pro';
 
   return (
-    <footer className="h-7 bg-[#0D0F14] border-t border-white/10 px-3 flex items-center justify-between text-[11px] text-slate-400 select-none shrink-0 z-20">
+    <footer className="hidden md:flex h-7 bg-[#0D0F14] border-t border-white/10 px-3 items-center justify-between text-[11px] text-slate-400 select-none shrink-0 z-20">
       {/* Left: Document & Engine Status */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">
